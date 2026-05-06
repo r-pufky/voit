@@ -3,7 +3,7 @@ Voit file renamer.
 
 Rename files using [Karl Voit's System][h] based on datetime in filenames.
 
-Originally built as a pre-processor for Digkam imports to avoid regex hell in
+Originally built as a pre-processor for Digikam imports to avoid regex hell in
 digikam's renamer tool; this can be applied to any file.
 
 See [parser.go][i] for supported datetime formats.
@@ -13,6 +13,26 @@ See [parser.go][i] for supported datetime formats.
 ``` bash
 go build -o voit
 ./voit -h
+```
+
+## Run
+
+``` bash
+# Match default regex and rename matches.
+voit -d /my/photos
+> 2019-06-23T23.42.01.742 - PXL-20190623-234201742.jpg
+> 2024-02-04T12.23.32.362 - PXL_20240204_122332362.jpg
+voit -f /my/photos/PXL_20240204_122332362.jpg
+> 2024-02-04T12.23.32.362 - PXL_20240204_122332362.jpg
+
+# Match using YYYYMMDDHHMMSS, lower case, and auto accept changes.
+voit -l -y -p fs -d /my/photos
+> 2019-06-23T23.42.01.742 - 20190623234201742.jpg
+> 2024-02-04T12.23.32.362 - 20240204122332362.jpg
+
+# Rename a single file, lower case, and auto accept changes.
+voit -l -y -p ns -f /my/photos/signal-2024-02-04-12-23-32.jpg
+> 2024-02-04T12.23.32.000 - signal-2024-02-04-12-23-32.jpg
 ```
 
 ## Issues
