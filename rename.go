@@ -8,7 +8,7 @@ import (
 )
 
 // A job is only added if a transformation is required.
-func addJob(sourceFileAbsPath string, pattern string, lower bool) (*Voit, error) {
+func addJob(sourceFileAbsPath string, pattern string, lower bool, strip bool) (*Voit, error) {
 	if sourceFileAbsPath == "" {
 		return nil, errors.New("no source file provided")
 	}
@@ -18,7 +18,7 @@ func addJob(sourceFileAbsPath string, pattern string, lower bool) (*Voit, error)
 	}
 
 	absDir, baseName := filepath.Split(sourceFileAbsPath)
-	targetName := FormatName(baseName, pattern, lower)
+	targetName := FormatName(baseName, pattern, lower, strip)
 	targetAbsPath := filepath.Join(absDir, targetName)
 
 	if baseName != targetName {
@@ -44,7 +44,7 @@ func addJob(sourceFileAbsPath string, pattern string, lower bool) (*Voit, error)
 // Create rename jobs from provided source file and directory. Enumerate files
 // if source file is empty. Jobs are only added if a transformation is
 // required.
-func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern string, lower bool) ([]Voit, int, error) {
+func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern string, lower bool, strip bool) ([]Voit, int, error) {
 	// Defensive recheck options.
 	if sourceFileAbsPath == "" && sourceDirAbsPath == "" {
 		return nil, 0, errors.New("No source file or directory specified.")
@@ -57,7 +57,7 @@ func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern strin
 	maxWidth := 0
 
 	if sourceFileAbsPath != "" {
-		job, err := addJob(sourceFileAbsPath, pattern, lower)
+		job, err := addJob(sourceFileAbsPath, pattern, lower, strip)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -79,7 +79,7 @@ func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern strin
 			}
 			fileAbsPath := filepath.Join(sourceDirAbsPath, file.Name())
 
-			job, err := addJob(fileAbsPath, pattern, lower)
+			job, err := addJob(fileAbsPath, pattern, lower, strip)
 			if err != nil {
 				return nil, 0, err
 			}

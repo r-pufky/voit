@@ -23,6 +23,7 @@ func TestAddJob(t *testing.T) {
 		test    string
 		path    string
 		lower   bool
+		strip   bool
 		wantErr bool
 		wantNil bool
 	}{
@@ -30,6 +31,7 @@ func TestAddJob(t *testing.T) {
 			test:    "Empty path",
 			path:    "",
 			lower:   false,
+			strip:   false,
 			wantErr: true,
 			wantNil: false,
 		},
@@ -37,6 +39,7 @@ func TestAddJob(t *testing.T) {
 			test:    "File missing",
 			path:    filepath.Join(tempDir, "missing.txt"),
 			lower:   true,
+			strip:   false,
 			wantErr: true,
 			wantNil: false,
 		},
@@ -44,6 +47,7 @@ func TestAddJob(t *testing.T) {
 			test:    "No transformation needed",
 			path:    existingFile,
 			lower:   false,
+			strip:   false,
 			wantErr: false,
 			wantNil: true,
 		},
@@ -51,6 +55,7 @@ func TestAddJob(t *testing.T) {
 			test:    "Transform needed",
 			path:    transformFile,
 			lower:   true,
+			strip:   false,
 			wantErr: false,
 			wantNil: false,
 		},
@@ -58,6 +63,7 @@ func TestAddJob(t *testing.T) {
 			test:    "Target already exists",
 			path:    existingFile,
 			lower:   true,
+			strip:   false,
 			wantErr: false,
 			wantNil: true,
 		},
@@ -65,11 +71,7 @@ func TestAddJob(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.test, func(t *testing.T) {
-			// Specific setup for 'Target already exists' to ensure collision.
-			lowerVal := tt.lower
-			pathVal := tt.path
-
-			job, err := addJob(pathVal, pattern, lowerVal)
+			job, err := addJob(tt.path, pattern, tt.lower, tt.strip)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("\naddJob()\nerror: %v,\nwant:  %v", err, tt.wantErr)
 			}
@@ -92,21 +94,21 @@ func TestCreateJobs(t *testing.T) {
 	pattern := "ms"
 
 	t.Run("Mutual exclusion check - Both provided", func(t *testing.T) {
-		_, _, err := CreateJobs(renameFile, tempDir, pattern, true)
+		_, _, err := CreateJobs(renameFile, tempDir, pattern, true, false)
 		if err == nil || err.Error() != "Only specify file or directory." {
 			t.Errorf("Expected mutual exclusion error, got %v", err)
 		}
 	})
 
 	t.Run("Mutual exclusion check - Neither provided", func(t *testing.T) {
-		_, _, err := CreateJobs("", "", pattern, true)
+		_, _, err := CreateJobs("", "", pattern, true, false)
 		if err == nil || err.Error() != "No source file or directory specified." {
 			t.Errorf("Expected no source error, got %v", err)
 		}
 	})
 
 	t.Run("Single file success", func(t *testing.T) {
-		jobs, width, err := CreateJobs(renameFile, "", pattern, true)
+		jobs, width, err := CreateJobs(renameFile, "", pattern, true, false)
 		if err != nil || len(jobs) != 1 {
 			t.Errorf("Expected 1 job, got %d", len(jobs))
 		}
@@ -117,7 +119,7 @@ func TestCreateJobs(t *testing.T) {
 
 	t.Run("Directory walk success", func(t *testing.T) {
 
-		jobs, _, err := CreateJobs("", tempDir, pattern, true)
+		jobs, _, err := CreateJobs("", tempDir, pattern, true, false)
 		if err != nil {
 			t.Errorf("Dir walk failed: %v", err)
 		}

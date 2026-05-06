@@ -19,7 +19,7 @@ type Voit struct {
 func main() {
 	opts := ParseFlags()
 
-	jobs, width, _ := CreateJobs(opts.File, opts.Directory, opts.Pattern, opts.Lower)
+	jobs, width, _ := CreateJobs(opts.File, opts.Directory, opts.Pattern, opts.Lower, opts.Strip)
 
 	if len(jobs) == 0 {
 		fmt.Println("No files matched the known datetime formats.")

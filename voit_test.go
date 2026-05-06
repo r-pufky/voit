@@ -9,13 +9,14 @@ type FormatTestCase struct {
 	filename string
 	pattern  string
 	lower    bool
+	strip    bool
 	want     string
 }
 
 func runFormatTests(t *testing.T, tests []FormatTestCase) {
 	for _, tt := range tests {
 		t.Run(tt.test, func(t *testing.T) {
-			got := FormatName(tt.filename, tt.pattern, tt.lower)
+			got := FormatName(tt.filename, tt.pattern, tt.lower, tt.strip)
 			if got != tt.want {
 				t.Errorf("\nInput: %s\nGot:   %s\nWant:  %s", tt.filename, got, tt.want)
 			}
@@ -30,6 +31,7 @@ func TestMS(t *testing.T) {
 			filename: "20231027_103005123.jpg",
 			pattern:  "ms",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - 20231027_103005123.jpg",
 		},
 		{
@@ -37,27 +39,47 @@ func TestMS(t *testing.T) {
 			filename: "20231027-103005123.jpg",
 			pattern:  "ms",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - 20231027-103005123.jpg",
+		},
+		{
+			test:     "ms bare strip",
+			filename: "20231027_103005123.jpg",
+			pattern:  "ms",
+			lower:    false,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.123.jpg",
 		},
 		{
 			test:     "ms leading",
 			filename: "IMG_20231027_103005123.jpg",
 			pattern:  "ms",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - IMG_20231027_103005123.jpg",
 		},
 		{
 			test:     "ms leading lowercase",
-			filename: "IMG_20231027_103005123.jpg",
+			filename: "IMG_20231027_103005123.JPG",
 			pattern:  "ms",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - img_20231027_103005123.jpg",
+		},
+		{
+			test:     "ms leading lowercase strip",
+			filename: "IMG_20231027_103005123.JPG",
+			pattern:  "ms",
+			lower:    true,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.123.jpg",
 		},
 		{
 			test:     "ms leading and trailing",
 			filename: "PXL_20231027_103005123-1.jpg",
 			pattern:  "ms",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - PXL_20231027_103005123-1.jpg",
 		},
 		{
@@ -65,6 +87,7 @@ func TestMS(t *testing.T) {
 			filename: "PXL_20231027_103005123-1.jpg",
 			pattern:  "ms",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - pxl_20231027_103005123-1.jpg",
 		},
 		{
@@ -72,6 +95,7 @@ func TestMS(t *testing.T) {
 			filename: "2343_20231027_103005123_34-2342-1.jpg",
 			pattern:  "ms",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - 2343_20231027_103005123_34-2342-1.jpg",
 		},
 		{
@@ -79,6 +103,7 @@ func TestMS(t *testing.T) {
 			filename: "2023-10-27-10-30-05-456.mp4",
 			pattern:  "ms",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27-10-30-05-456.mp4",
 		},
 		{
@@ -86,6 +111,7 @@ func TestMS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.123 - IMG_20231027_103005123.jpg",
 			pattern:  "ms",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - IMG_20231027_103005123.jpg",
 		},
 		{
@@ -93,6 +119,7 @@ func TestMS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.123 - IMG_20231027_103005123.jpg",
 			pattern:  "ms",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - IMG_20231027_103005123.jpg",
 		},
 	}
@@ -106,6 +133,7 @@ func TestMNS(t *testing.T) {
 			filename: "2023-10-27-10-30-05-456.mp4",
 			pattern:  "mns",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.456 - 2023-10-27-10-30-05-456.mp4",
 		},
 		{
@@ -113,27 +141,47 @@ func TestMNS(t *testing.T) {
 			filename: "2023_10_27_10_30_05_456.mp4",
 			pattern:  "mns",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.456 - 2023_10_27_10_30_05_456.mp4",
+		},
+		{
+			test:     "mns bare strip",
+			filename: "2023-10-27-10-30-05-456.mp4",
+			pattern:  "mns",
+			lower:    false,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.456.mp4",
 		},
 		{
 			test:     "mns leading",
 			filename: "test vid 2023_10_27_10_30_05_456.mp4",
 			pattern:  "mns",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.456 - test vid 2023_10_27_10_30_05_456.mp4",
 		},
 		{
 			test:     "mns leading lowercase",
-			filename: "TEST VID 2023_10_27_10_30_05_456.mp4",
+			filename: "TEST VID 2023_10_27_10_30_05_456.MP4",
 			pattern:  "mns",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.456 - test vid 2023_10_27_10_30_05_456.mp4",
+		},
+		{
+			test:     "mns leading lowercase strip",
+			filename: "TEST VID 2023_10_27_10_30_05_456.MP4",
+			pattern:  "mns",
+			lower:    true,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.456.mp4",
 		},
 		{
 			test:     "mns leading and trailing",
 			filename: "test vid 2023_10_27_10_30_05_456-1.mp4",
 			pattern:  "mns",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.456 - test vid 2023_10_27_10_30_05_456-1.mp4",
 		},
 		{
@@ -141,6 +189,7 @@ func TestMNS(t *testing.T) {
 			filename: "TEST VID 2023_10_27_10_30_05_456-TEST.mp4",
 			pattern:  "mns",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.456 - test vid 2023_10_27_10_30_05_456-test.mp4",
 		},
 		{
@@ -148,6 +197,7 @@ func TestMNS(t *testing.T) {
 			filename: "2343_2023_10_27_10_30_05_456_34-2342-1.mp4",
 			pattern:  "mns",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.456 - 2343_2023_10_27_10_30_05_456_34-2342-1.mp4",
 		},
 		{
@@ -155,6 +205,7 @@ func TestMNS(t *testing.T) {
 			filename: "20231027_103005123.jpg",
 			pattern:  "mns",
 			lower:    false,
+			strip:    false,
 			want:     "20231027_103005123.jpg",
 		},
 		{
@@ -162,6 +213,7 @@ func TestMNS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.456 - TEST VID 2023_10_27_10_30_05_456-TEST.mp4",
 			pattern:  "mns",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.456 - TEST VID 2023_10_27_10_30_05_456-TEST.mp4",
 		},
 		{
@@ -169,6 +221,7 @@ func TestMNS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.456 - TEST VID 2023_10_27_10_30_05_456-TEST.mp4",
 			pattern:  "mns",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.456 - TEST VID 2023_10_27_10_30_05_456-TEST.mp4",
 		},
 	}
@@ -182,27 +235,47 @@ func TestMFS(t *testing.T) {
 			filename: "20231027103005123.jpg",
 			pattern:  "mfs",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - 20231027103005123.jpg",
+		},
+		{
+			test:     "mfs bare strip",
+			filename: "20231027103005123.jpg",
+			pattern:  "mfs",
+			lower:    false,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.123.jpg",
 		},
 		{
 			test:     "mfs leading",
 			filename: "IMG_20231027103005123.jpg",
 			pattern:  "mfs",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - IMG_20231027103005123.jpg",
 		},
 		{
 			test:     "mfs leading lowercase",
-			filename: "IMG_20231027103005123.jpg",
+			filename: "IMG_20231027103005123.JPG",
 			pattern:  "mfs",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - img_20231027103005123.jpg",
+		},
+		{
+			test:     "mfs leading lowercase strip",
+			filename: "IMG_20231027103005123.JPG",
+			pattern:  "mfs",
+			lower:    true,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.123.jpg",
 		},
 		{
 			test:     "mfs leading and trailing",
 			filename: "PXL_20231027103005123-1.jpg",
 			pattern:  "mfs",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - PXL_20231027103005123-1.jpg",
 		},
 		{
@@ -210,6 +283,7 @@ func TestMFS(t *testing.T) {
 			filename: "PXL_20231027103005123-1.jpg",
 			pattern:  "mfs",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - pxl_20231027103005123-1.jpg",
 		},
 		{
@@ -217,6 +291,7 @@ func TestMFS(t *testing.T) {
 			filename: "2343_20231027103005123_34-2342-1.jpg",
 			pattern:  "mfs",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - 2343_20231027103005123_34-2342-1.jpg",
 		},
 		{
@@ -224,6 +299,7 @@ func TestMFS(t *testing.T) {
 			filename: "2023-10-27-10-30-05-456.mp4",
 			pattern:  "mfs",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27-10-30-05-456.mp4",
 		},
 		{
@@ -231,6 +307,7 @@ func TestMFS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.123 - PXL_20231027103005123-1.jpg",
 			pattern:  "mfs",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - PXL_20231027103005123-1.jpg",
 		},
 		{
@@ -238,6 +315,7 @@ func TestMFS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.123 - PXL_20231027103005123-1.jpg",
 			pattern:  "mfs",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.123 - PXL_20231027103005123-1.jpg",
 		},
 	}
@@ -251,6 +329,7 @@ func TestS(t *testing.T) {
 			filename: "20231027_103005.jpg",
 			pattern:  "s",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - 20231027_103005.jpg",
 		},
 		{
@@ -258,27 +337,47 @@ func TestS(t *testing.T) {
 			filename: "20231027-103005.jpg",
 			pattern:  "s",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - 20231027-103005.jpg",
+		},
+		{
+			test:     "s bare strip",
+			filename: "20231027_103005.jpg",
+			pattern:  "s",
+			lower:    false,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.000.jpg",
 		},
 		{
 			test:     "s leading",
 			filename: "IMG_20231027_103005.jpg",
 			pattern:  "s",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - IMG_20231027_103005.jpg",
 		},
 		{
 			test:     "s leading lowercase",
-			filename: "IMG_20231027_103005.jpg",
+			filename: "IMG_20231027_103005.JPG",
 			pattern:  "s",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - img_20231027_103005.jpg",
+		},
+		{
+			test:     "s leading lowercase strip",
+			filename: "IMG_20231027_103005.JPG",
+			pattern:  "s",
+			lower:    true,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.000.jpg",
 		},
 		{
 			test:     "s leading and trailing",
 			filename: "PXL_20231027_103005-1.jpg",
 			pattern:  "s",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - PXL_20231027_103005-1.jpg",
 		},
 		{
@@ -286,6 +385,7 @@ func TestS(t *testing.T) {
 			filename: "PXL_20231027_103005-1.jpg",
 			pattern:  "s",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - pxl_20231027_103005-1.jpg",
 		},
 		{
@@ -293,6 +393,7 @@ func TestS(t *testing.T) {
 			filename: "2343_20231027_103005_34-2342-1.jpg",
 			pattern:  "s",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - 2343_20231027_103005_34-2342-1.jpg",
 		},
 		{
@@ -300,6 +401,7 @@ func TestS(t *testing.T) {
 			filename: "2023-10-27-10-30-05-456.mp4",
 			pattern:  "s",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27-10-30-05-456.mp4",
 		},
 		{
@@ -307,6 +409,7 @@ func TestS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.000 - PXL_20231027_103005-1.jpg",
 			pattern:  "s",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - PXL_20231027_103005-1.jpg",
 		},
 		{
@@ -314,6 +417,7 @@ func TestS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.000 - PXL_20231027_103005-1.jpg",
 			pattern:  "s",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - PXL_20231027_103005-1.jpg",
 		},
 	}
@@ -327,13 +431,23 @@ func TestNS(t *testing.T) {
 			filename: "2023-10-27-10-30-05.mp4",
 			pattern:  "ns",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - 2023-10-27-10-30-05.mp4",
+		},
+		{
+			test:     "ns bare strip",
+			filename: "2023-10-27-10-30-05.mp4",
+			pattern:  "ns",
+			lower:    false,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.000.mp4",
 		},
 		{
 			test:     "ns bare alternative separator",
 			filename: "2023_10_27_10_30_05.mp4",
 			pattern:  "ns",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - 2023_10_27_10_30_05.mp4",
 		},
 		{
@@ -341,20 +455,31 @@ func TestNS(t *testing.T) {
 			filename: "test vid 2023_10_27_10_30_05.mp4",
 			pattern:  "ns",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - test vid 2023_10_27_10_30_05.mp4",
 		},
 		{
 			test:     "ns leading lowercase",
-			filename: "TEST VID 2023_10_27_10_30_05.mp4",
+			filename: "TEST VID 2023_10_27_10_30_05.MP4",
 			pattern:  "ns",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - test vid 2023_10_27_10_30_05.mp4",
+		},
+		{
+			test:     "ns leading lowercase strip",
+			filename: "TEST VID 2023_10_27_10_30_05.MP4",
+			pattern:  "ns",
+			lower:    true,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.000.mp4",
 		},
 		{
 			test:     "ns leading and trailing",
 			filename: "test vid 2023_10_27_10_30_05-1.mp4",
 			pattern:  "ns",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - test vid 2023_10_27_10_30_05-1.mp4",
 		},
 		{
@@ -362,6 +487,7 @@ func TestNS(t *testing.T) {
 			filename: "TEST VID 2023_10_27_10_30_05-1.mp4",
 			pattern:  "ns",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - test vid 2023_10_27_10_30_05-1.mp4",
 		},
 		{
@@ -369,6 +495,7 @@ func TestNS(t *testing.T) {
 			filename: "2343_2023_10_27_10_30_05_34-2342-1.mp4",
 			pattern:  "ns",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - 2343_2023_10_27_10_30_05_34-2342-1.mp4",
 		},
 		{
@@ -376,6 +503,7 @@ func TestNS(t *testing.T) {
 			filename: "20231027_103005123.jpg",
 			pattern:  "ns",
 			lower:    false,
+			strip:    false,
 			want:     "20231027_103005123.jpg",
 		},
 		{
@@ -383,6 +511,7 @@ func TestNS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.000 - TEST VID 2023_10_27_10_30_05-1.mp4",
 			pattern:  "ns",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - TEST VID 2023_10_27_10_30_05-1.mp4",
 		},
 		{
@@ -390,6 +519,7 @@ func TestNS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.000 - TEST VID 2023_10_27_10_30_05-1.mp4",
 			pattern:  "ns",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - TEST VID 2023_10_27_10_30_05-1.mp4",
 		},
 	}
@@ -403,27 +533,47 @@ func TestFS(t *testing.T) {
 			filename: "20231027103005.jpg",
 			pattern:  "fs",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - 20231027103005.jpg",
+		},
+		{
+			test:     "fs bare strip",
+			filename: "20231027103005.jpg",
+			pattern:  "fs",
+			lower:    false,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.000.jpg",
 		},
 		{
 			test:     "fs leading",
 			filename: "IMG_20231027103005.jpg",
 			pattern:  "fs",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - IMG_20231027103005.jpg",
 		},
 		{
 			test:     "fs leading lowercase",
-			filename: "IMG_20231027103005.jpg",
+			filename: "IMG_20231027103005.JPG",
 			pattern:  "fs",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - img_20231027103005.jpg",
+		},
+		{
+			test:     "fs leading lowercase strip",
+			filename: "IMG_20231027103005.JPG",
+			pattern:  "fs",
+			lower:    true,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.000.jpg",
 		},
 		{
 			test:     "fs leading and trailing",
 			filename: "PXL_20231027103005123-1.jpg",
 			pattern:  "fs",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - PXL_20231027103005123-1.jpg",
 		},
 		{
@@ -431,6 +581,7 @@ func TestFS(t *testing.T) {
 			filename: "PXL_20231027103005123-1.jpg",
 			pattern:  "fs",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - pxl_20231027103005123-1.jpg",
 		},
 		{
@@ -438,6 +589,7 @@ func TestFS(t *testing.T) {
 			filename: "2343_20231027103005123_34-2342-1.jpg",
 			pattern:  "fs",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - 2343_20231027103005123_34-2342-1.jpg",
 		},
 		{
@@ -445,6 +597,7 @@ func TestFS(t *testing.T) {
 			filename: "2023-10-27-10-30-05-456.mp4",
 			pattern:  "fs",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27-10-30-05-456.mp4",
 		},
 		{
@@ -452,6 +605,7 @@ func TestFS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.000 - PXL_20231027103005123-1.jpg",
 			pattern:  "fs",
 			lower:    false,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - PXL_20231027103005123-1.jpg",
 		},
 		{
@@ -459,6 +613,7 @@ func TestFS(t *testing.T) {
 			filename: "2023-10-27T10.30.05.000 - PXL_20231027103005123-1.jpg",
 			pattern:  "fs",
 			lower:    true,
+			strip:    false,
 			want:     "2023-10-27T10.30.05.000 - PXL_20231027103005123-1.jpg",
 		},
 	}

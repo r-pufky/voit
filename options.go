@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"slices"
 	"strings"
 
@@ -16,6 +17,8 @@ type Options struct {
 	Lower     bool   `short:"l" long:"lower" description:"Lowercase existing filename and extension (only if transformed)." required:"false"`
 	Yes       bool   `short:"y" long:"yes" description:"Automatically confirm operations (dangerous)." required:"false"`
 	Pattern   string `short:"p" long:"pattern" description:"Regex pattern to use." required:"false" default:"ms"`
+	Strip     bool   `short:"s" long:"strip" description:"Strip original filename, leaving only datetime (dangerous)."`
+	Build     bool   `short:"b" long:"build" description:"Show build version." required:"false"`
 }
 
 // Parse CLI options. Directory and File options standardized to absolute path.
@@ -29,6 +32,7 @@ func ParseFlags() Options {
 
 	parser := flags.NewParser(&opts, flags.Default)
 
+	parser.Usage = "[OPTIONS] \n\nRename files according to filename dates: 'YYYY-MM-DDTHH.MM.SS.SSS - {file}'"
 	opt := parser.FindOptionByLongName("pattern")
 	opt.Description =
 		"  s   - YYYYMMDD?HHMMSS\n" +
@@ -37,9 +41,6 @@ func ParseFlags() Options {
 			"  mns - YYYY?MM?DD?HH?MM?SS?SSS\n" +
 			"  mfs - YYYYMMDDHHMMSSSSS\n" +
 			"  ms  - YYYYMMDD?HHMMSSSSS\n"
-	parser.LongDescription =
-		"Parse filename dates into 'YYYY-MM-DDTHH.MM.SS.SSS - {file}'\n" +
-			"missing fields are set to zero-padded 0 or 1 (0000-01-01T00.00.00.000)."
 
 	if _, err := parser.Parse(); err != nil {
 		os.Exit(1)
@@ -50,6 +51,17 @@ func ParseFlags() Options {
 			fmt.Printf("\n[error] invalid pattern provided (%v).", opts.Pattern)
 			os.Exit(2)
 		}
+	}
+
+	if opts.Build {
+		build, ok := debug.ReadBuildInfo()
+		if !ok || build.Main.Version == "" {
+			fmt.Printf("Unknown version.")
+			os.Exit(0)
+		}
+
+		fmt.Printf("Version: %s\n", build.Main.Version)
+		os.Exit(0)
 	}
 
 	if opts.File == "" && opts.Directory == "" {

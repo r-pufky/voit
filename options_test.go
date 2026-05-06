@@ -54,6 +54,11 @@ func TestParseFlagsExits(t *testing.T) {
 			args:     []string{"-f", "test.txt", "-d", "./data"},
 			expected: 2,
 		},
+		{
+			test:     "Build version",
+			args:     []string{"-b"},
+			expected: 0,
+		},
 	}
 
 	for _, tt := range tests {

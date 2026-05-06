@@ -8,6 +8,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -52,7 +53,7 @@ func parseFile(file string, pattern string) (time.Time, error) {
 }
 
 // Return target file name, ignoring any files already using the Voit method.
-func FormatName(filename string, pattern string, lower bool) string {
+func FormatName(filename string, pattern string, lower bool, strip bool) string {
 	date, err := parseFile(filename, pattern)
 	if err != nil {
 		return filename
@@ -66,5 +67,9 @@ func FormatName(filename string, pattern string, lower bool) string {
 		file = strings.ToLower(filename)
 	}
 
+	if strip {
+		extension := filepath.Ext(file)
+		return fmt.Sprintf("%s%s", date.Format("2006-01-02T15.04.05.000"), extension)
+	}
 	return fmt.Sprintf("%s - %s", date.Format("2006-01-02T15.04.05.000"), file)
 }

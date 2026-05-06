@@ -24,15 +24,22 @@ voit -d /my/photos
 > 2024-02-04T12.23.32.362 - PXL_20240204_122332362.jpg
 voit -f /my/photos/PXL_20240204_122332362.jpg
 > 2024-02-04T12.23.32.362 - PXL_20240204_122332362.jpg
+voit -s -f /my/photos/PXL_20240204_122332362.jpg
+> 2024-02-04T12.23.32.362.jpg
 
 # Match using YYYYMMDDHHMMSS, lower case, and auto accept changes.
 voit -l -y -p fs -d /my/photos
 > 2019-06-23T23.42.01.742 - 20190623234201742.jpg
 > 2024-02-04T12.23.32.362 - 20240204122332362.jpg
+voit -l -y -s -p fs -d /my/photos
+> 2019-06-23T23.42.01.742.jpg
+> 2024-02-04T12.23.32.362.jpg
 
 # Rename a single file, lower case, and auto accept changes.
 voit -l -y -p ns -f /my/photos/signal-2024-02-04-12-23-32.jpg
 > 2024-02-04T12.23.32.000 - signal-2024-02-04-12-23-32.jpg
+voit -l -y -s -p ns -f /my/photos/signal-2024-02-04-12-23-32.jpg
+> 2024-02-04T12.23.32.000.jpg
 ```
 
 ## Issues
