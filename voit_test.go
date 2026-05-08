@@ -1,7 +1,9 @@
 package main
 
 import (
+	"os"
 	"testing"
+	"time"
 )
 
 type FormatTestCase struct {
@@ -10,13 +12,15 @@ type FormatTestCase struct {
 	pattern  string
 	lower    bool
 	strip    bool
+	created  bool
+	modified bool
 	want     string
 }
 
 func runFormatTests(t *testing.T, tests []FormatTestCase) {
 	for _, tt := range tests {
 		t.Run(tt.test, func(t *testing.T) {
-			got := FormatName(tt.filename, tt.pattern, tt.lower, tt.strip)
+			got := FormatName(tt.filename, tt.pattern, tt.lower, tt.strip, tt.created, tt.modified)
 			if got != tt.want {
 				t.Errorf("\nInput: %s\nGot:   %s\nWant:  %s", tt.filename, got, tt.want)
 			}
@@ -618,4 +622,84 @@ func TestFS(t *testing.T) {
 		},
 	}
 	runFormatTests(t, tests)
+}
+
+func TestParseFileTime(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "testfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	info, _ := os.Stat(tmpFile.Name())
+	expectedModTime := info.ModTime().UTC()
+
+	tests := []struct {
+		name     string
+		file     string
+		created  bool
+		modified bool
+		wantErr  bool
+	}{
+		{
+			name:     "File does not exist",
+			file:     "non_existent_file.txt",
+			created:  true,
+			modified: true,
+			wantErr:  true,
+		},
+		{
+			name:     "Both flags false returns empty time",
+			file:     tmpFile.Name(),
+			created:  false,
+			modified: false,
+			wantErr:  false,
+		},
+		{
+			name:     "Modified time",
+			file:     tmpFile.Name(),
+			created:  false,
+			modified: true,
+			wantErr:  false,
+		},
+		{
+			name:     "Created time",
+			file:     tmpFile.Name(),
+			created:  true,
+			modified: false,
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseFileTime(tt.file, tt.created, tt.modified)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseFileTime() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr {
+				if !tt.created && !tt.modified {
+					if !got.IsZero() {
+						t.Errorf("Expected zero time when both flags are false, got %v", got)
+					}
+				} else {
+					// Ensure the location is forced to UTC as per function logic
+					if got.Location() != time.UTC {
+						t.Errorf("Expected UTC location, got %v", got.Location())
+					}
+
+					// On non-linux, or if Linux cTime matches mTime for a new file:
+					if tt.modified && !tt.created {
+						if got.Unix() != expectedModTime.Unix() {
+							t.Errorf("Time mismatch. Got %v, want %v", got, expectedModTime)
+						}
+					}
+				}
+			}
+		})
+	}
 }

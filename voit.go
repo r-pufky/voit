@@ -8,10 +8,13 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -52,9 +55,46 @@ func parseFile(file string, pattern string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("no date pattern matched file: %s", file)
 }
 
+// Parse file creation or modification time.
+// Fallback to modified time if underlying FS does not support creation time.
+func parseFileTime(file string, created bool, modified bool) (time.Time, error) {
+	info, err := os.Stat(file)
+	if err != nil || (!created && !modified) {
+		return time.Time{}, err
+	}
+	cTime := info.ModTime().UTC()
+
+	if created {
+		switch runtime.GOOS {
+		case "linux":
+			if stat, ok := info.Sys().(*syscall.Stat_t); ok {
+				cTime = time.Unix(stat.Ctim.Sec, stat.Ctim.Nsec).UTC()
+			}
+		}
+	}
+
+	return time.Date(
+		cTime.Year(),
+		cTime.Month(),
+		cTime.Day(),
+		cTime.Hour(),
+		cTime.Minute(),
+		cTime.Second(),
+		cTime.Nanosecond(),
+		time.UTC,
+	), nil
+}
+
 // Return target file name, ignoring any files already using the Voit method.
-func FormatName(filename string, pattern string, lower bool, strip bool) string {
-	date, err := parseFile(filename, pattern)
+func FormatName(filename string, pattern string, lower bool, strip bool, created bool, modified bool) string {
+	var date time.Time
+	var err error
+	if created || modified {
+		date, err = parseFileTime(filename, created, modified)
+	} else {
+		date, err = parseFile(filename, pattern)
+	}
+
 	if err != nil {
 		return filename
 	}

@@ -57,6 +57,11 @@ func TestParseFlagsExits(t *testing.T) {
 			expected: 2,
 		},
 		{
+			test:     "Mutually exclusive created and modified",
+			args:     []string{"-f", "test.txt", "-c", "-m"},
+			expected: 2,
+		},
+		{
 			test:     "Build version",
 			args:     []string{"-b"},
 			expected: 0,

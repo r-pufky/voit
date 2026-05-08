@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"slices"
 	"strings"
 
@@ -19,14 +18,16 @@ import (
 )
 
 type Options struct {
-	Directory string `short:"d" long:"dir" description:"The directory containing files to rename." required:"false"`
-	File      string `short:"f" long:"file" description:"File to rename." required:"false"`
-	Lower     bool   `short:"l" long:"lower" description:"Lowercase existing filename and extension (only if transformed)." required:"false"`
-	Yes       bool   `short:"y" long:"yes" description:"Automatically confirm operations (dangerous)." required:"false"`
+	Directory string `short:"d" long:"dir" description:"The directory containing files to rename (mutually exclusive -f)." required:"false"`
+	File      string `short:"f" long:"file" description:"File to rename (mutually exclusive -d)." required:"false"`
 	Pattern   string `short:"p" long:"pattern" description:"Regex pattern to use." required:"false" default:"ms"`
-	Strip     bool   `short:"s" long:"strip" description:"Strip original filename, leaving only datetime (dangerous)."`
+	Lower     bool   `short:"l" long:"lower" description:"Lowercase existing filename and extension (only if transformed)." required:"false"`
+	Strip     bool   `short:"s" long:"strip" description:"Strip original filename, leaving only datetime (not recommended)."`
+	Yes       bool   `short:"y" long:"yes" description:"Automatically confirm operations (not recommended)." required:"false"`
+	Created   bool   `short:"c" long:"created" description:"Use file creation date (fallback to modified date if not found) (not recommended)." required:"false"`
+	Modified  bool   `short:"m" long:"modified" description:"Use file modification (not recommended)." required:"false"`
+	Verbose   bool   `short:"v" long:"verbose" description:"Show verbose information on actions." required:"false"`
 	Build     bool   `short:"b" long:"build" description:"Show build version." required:"false"`
-	Verbose   bool   `short:"v" long:"verbose" description:"Show verbose information on actions."`
 }
 
 func validateOptions(opts *Options) {
@@ -40,13 +41,7 @@ func validateOptions(opts *Options) {
 	}
 
 	if opts.Build {
-		build, ok := debug.ReadBuildInfo()
-		if !ok || build.Main.Version == "" {
-			fmt.Printf("Unknown version.")
-			os.Exit(0)
-		}
-
-		fmt.Printf("Version: %s\n", build.Main.Version)
+		fmt.Printf("Version: %s\n", Version)
 		os.Exit(0)
 	}
 
@@ -57,6 +52,11 @@ func validateOptions(opts *Options) {
 
 	if opts.File != "" && opts.Directory != "" {
 		fmt.Println("\n[error] -f and -d are mutually exclusive.")
+		os.Exit(2)
+	}
+
+	if opts.Created && opts.Modified {
+		fmt.Println("\n[error] -c and -m are mutually exclusive.")
 		os.Exit(2)
 	}
 
