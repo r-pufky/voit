@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // A job is only added if a transformation is required.
@@ -97,10 +98,42 @@ func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern strin
 	return nil, 0, nil
 }
 
-func ExecuteRename(jobs []Voit) {
+func ExecuteRename(jobs []Voit, overwrite bool, verbose bool) {
 	for _, job := range jobs {
-		if err := os.Rename(job.sourceAbsPath, job.targetAbsPath); err != nil {
-			fmt.Printf("Error renaming %s: %v\n", job.source, err)
+		target := job.targetAbsPath
+
+		if !overwrite {
+			if _, err := os.Stat(target); err == nil {
+				if verbose {
+					fmt.Printf("Collision: %s", target)
+				}
+				target = preventCollision(target, verbose)
+			}
+		}
+
+		if err := os.Rename(job.sourceAbsPath, target); err != nil {
+			fmt.Printf("Error renaming %s to %s: %v\n", job.source, target, err)
+		} else if verbose {
+			fmt.Printf("Renamed: %s -> %s\n", job.source, target)
 		}
 	}
+}
+
+func preventCollision(path string, verbose bool) string {
+	ext := filepath.Ext(path)
+	name := strings.TrimSuffix(path, ext)
+	counter := 1
+	uniquePath := path
+
+	for {
+		uniquePath = fmt.Sprintf("%s_%d%s", name, counter, ext)
+		if _, err := os.Stat(uniquePath); os.IsNotExist(err) {
+			if verbose {
+				fmt.Printf("Collision (new target): %s", uniquePath)
+			}
+			break
+		}
+		counter++
+	}
+	return uniquePath
 }

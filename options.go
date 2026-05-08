@@ -26,6 +26,7 @@ type Options struct {
 	Yes       bool   `short:"y" long:"yes" description:"Automatically confirm operations (not recommended)." required:"false"`
 	Created   bool   `short:"c" long:"created" description:"Use file creation date (fallback to modified date if not found) (not recommended)." required:"false"`
 	Modified  bool   `short:"m" long:"modified" description:"Use file modification (not recommended)." required:"false"`
+	Overwrite bool   `short:"o" long:"overwrite" description:"Overwrite existing target files if they exist (DANGEROUS)." required:"false"`
 	Verbose   bool   `short:"v" long:"verbose" description:"Show verbose information on actions." required:"false"`
 	Build     bool   `short:"b" long:"build" description:"Show build version." required:"false"`
 }
@@ -101,7 +102,8 @@ func Config(path string) Options {
 	parser := flags.NewParser(&opts, flags.Default)
 	parser.Usage = "[OPTIONS] \n\nRename files according to filename dates: 'YYYY-MM-DDTHH.MM.SS.SSS - {file}'"
 	parser.LongDescription =
-		"Set default options in: ~/.config/voit.toml\n" +
+		"Target files are automatically differentiated if there are name collisions.\n\n" +
+			"Set default options in: ~/.config/voit.toml\n" +
 			"NOTE: Pattern flag is overridden if specified in config."
 
 	opt := parser.FindOptionByLongName("pattern")

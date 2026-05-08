@@ -31,14 +31,18 @@ func main() {
 	}
 
 	DisplayPending(os.Stdout, jobs, width)
-	fmt.Printf("\nProposed changes: %d file(s).\n", len(jobs))
+	if opts.Overwrite {
+		fmt.Printf("\nProposed changes (OVERWRITE ENABLED): %d file(s).\n", len(jobs))
+	} else {
+		fmt.Printf("\nProposed changes: %d file(s).\n", len(jobs))
+	}
 
 	if !opts.Yes && !Confirm(os.Stdin, os.Stdout) {
 		fmt.Println("Operation aborted by user.")
 		return
 	}
 
-	ExecuteRename(jobs)
+	ExecuteRename(jobs, opts.Overwrite, opts.Verbose)
 	fmt.Println("Success.")
 }
 
