@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+var Version = "development"
+
 type Voit struct {
 	dir           string // Absolute path to file directory.
 	source        string // source file basename.
@@ -19,10 +21,9 @@ type Voit struct {
 
 func main() {
 	home, _ := os.UserHomeDir()
-
 	opts := Config(filepath.Join(home, ".config", "voit.toml"))
 
-	jobs, width, _ := CreateJobs(opts.File, opts.Directory, opts.Pattern, opts.Lower, opts.Strip)
+	jobs, width, _ := CreateJobs(opts.File, opts.Directory, opts.Pattern, opts.Lower, opts.Strip, opts.Created, opts.Modified)
 
 	if len(jobs) == 0 {
 		fmt.Println("No files matched the known datetime formats.")

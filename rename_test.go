@@ -20,12 +20,14 @@ func TestAddJob(t *testing.T) {
 	pattern := "ms"
 
 	tests := []struct {
-		test    string
-		path    string
-		lower   bool
-		strip   bool
-		wantErr bool
-		wantNil bool
+		test     string
+		path     string
+		lower    bool
+		strip    bool
+		created  bool
+		modified bool
+		wantErr  bool
+		wantNil  bool
 	}{
 		{
 			test:    "Empty path",
@@ -71,7 +73,7 @@ func TestAddJob(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.test, func(t *testing.T) {
-			job, err := addJob(tt.path, pattern, tt.lower, tt.strip)
+			job, err := addJob(tt.path, pattern, tt.lower, tt.strip, tt.created, tt.modified)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("\naddJob()\nerror: %v,\nwant:  %v", err, tt.wantErr)
 			}
@@ -94,21 +96,21 @@ func TestCreateJobs(t *testing.T) {
 	pattern := "ms"
 
 	t.Run("Mutual exclusion check - Both provided", func(t *testing.T) {
-		_, _, err := CreateJobs(renameFile, tempDir, pattern, true, false)
+		_, _, err := CreateJobs(renameFile, tempDir, pattern, true, false, false, false)
 		if err == nil || err.Error() != "Only specify file or directory." {
 			t.Errorf("Expected mutual exclusion error, got %v", err)
 		}
 	})
 
 	t.Run("Mutual exclusion check - Neither provided", func(t *testing.T) {
-		_, _, err := CreateJobs("", "", pattern, true, false)
+		_, _, err := CreateJobs("", "", pattern, true, false, false, false)
 		if err == nil || err.Error() != "No source file or directory specified." {
 			t.Errorf("Expected no source error, got %v", err)
 		}
 	})
 
 	t.Run("Single file success", func(t *testing.T) {
-		jobs, width, err := CreateJobs(renameFile, "", pattern, true, false)
+		jobs, width, err := CreateJobs(renameFile, "", pattern, true, false, false, false)
 		if err != nil || len(jobs) != 1 {
 			t.Errorf("Expected 1 job, got %d", len(jobs))
 		}
@@ -119,7 +121,7 @@ func TestCreateJobs(t *testing.T) {
 
 	t.Run("Directory walk success", func(t *testing.T) {
 
-		jobs, _, err := CreateJobs("", tempDir, pattern, true, false)
+		jobs, _, err := CreateJobs("", tempDir, pattern, true, false, false, false)
 		if err != nil {
 			t.Errorf("Dir walk failed: %v", err)
 		}
