@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/spf13/viper"
 )
 
 // Wrap exit in sub process to capture exit codes.
@@ -21,7 +23,7 @@ func TestHelperProcess(t *testing.T) {
 		}
 	}
 
-	ParseFlags()
+	Config("/tmp/non-existent-voit.toml")
 	os.Exit(0)
 }
 
@@ -80,40 +82,88 @@ func TestParseFlagsExits(t *testing.T) {
 }
 
 func TestParseFlagsSuccess(t *testing.T) {
+	configData := []byte(`
+Pattern = "ns"
+Lower = true
+Directory = "/tmp/override"
+`)
 	tests := []struct {
-		test     string
-		args     []string
-		wantDir  string
-		wantFile string
+		test        string
+		args        []string
+		useConfig   bool
+		wantDir     string
+		wantFile    string
+		wantPattern string
+		wantLower   bool
 	}{
 		{
-			test:     "Valid File Input",
-			args:     []string{"-f", "logs/test.log", "-l"},
-			wantDir:  HelperAbsPath("logs"),
-			wantFile: "test.log",
+			test:        "Valid File Input",
+			args:        []string{"-f", "/tmp/test.jpg", "-l"},
+			useConfig:   false,
+			wantDir:     HelperAbsPath("/tmp"),
+			wantFile:    "test.jpg",
+			wantPattern: "ms",
+			wantLower:   true,
 		},
 		{
-			test:     "Valid Directory Input",
-			args:     []string{"--dir", "/tmp/data", "--yes"},
-			wantDir:  HelperAbsPath("/tmp/data"),
-			wantFile: "",
+			test:        "Valid Directory Input",
+			args:        []string{"--dir", "/tmp/data", "--yes"},
+			useConfig:   false,
+			wantDir:     HelperAbsPath("/tmp/data"),
+			wantFile:    "",
+			wantPattern: "ms",
+		},
+		{
+			test:        "Pattern override",
+			args:        []string{},
+			useConfig:   true,
+			wantDir:     HelperAbsPath("/tmp/override"),
+			wantFile:    "",
+			wantPattern: "ns",
+			wantLower:   true,
+		},
+		{
+			test:        "Directory/file flag overrides config",
+			args:        []string{"--dir", "/tmp/override"},
+			useConfig:   true,
+			wantDir:     HelperAbsPath("/tmp/override"),
+			wantFile:    "",
+			wantPattern: "ns",
+			wantLower:   true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.test, func(t *testing.T) {
+			// Setup testing config if used.
+			viper.Reset()
+			tmpDir := t.TempDir()
+			realConfig := filepath.Join(tmpDir, "voit.toml")
+			noConfig := filepath.Join(tmpDir, "non-existent.toml")
+
+			var config string
+			if tt.useConfig {
+				os.WriteFile(realConfig, configData, 0644)
+				config = realConfig
+			} else {
+				config = noConfig
+			}
+
 			// Save original args and restore after.
 			oldArgs := os.Args
 			defer func() { os.Args = oldArgs }()
 			os.Args = append([]string{"cmd"}, tt.args...)
 
-			opts := ParseFlags()
+			opts := Config(config)
 
 			if opts.Directory != tt.wantDir {
 				t.Errorf("Directory: got %s, want %s", opts.Directory, tt.wantDir)
 			}
 			if opts.File != tt.wantFile {
 				t.Errorf("File: got %s, want %s", opts.File, tt.wantFile)
+			}
+			if opts.Lower != tt.wantLower {
+				t.Errorf("Lower: got %t, want %t", opts.Lower, tt.wantLower)
 			}
 		})
 	}

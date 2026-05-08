@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -17,7 +18,9 @@ type Voit struct {
 }
 
 func main() {
-	opts := ParseFlags()
+	home, _ := os.UserHomeDir()
+
+	opts := Config(filepath.Join(home, ".config", "voit.toml"))
 
 	jobs, width, _ := CreateJobs(opts.File, opts.Directory, opts.Pattern, opts.Lower, opts.Strip)
 

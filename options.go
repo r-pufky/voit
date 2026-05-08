@@ -1,3 +1,9 @@
+// Load configuration and flag options. Non-existing config locations are
+// skipped.
+//
+// Priority:
+// 1. flags
+// 2. ~/.config/voit.cf
 package main
 
 import (
@@ -9,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/jessevdk/go-flags"
+	"github.com/spf13/viper"
 )
 
 type Options struct {
@@ -19,32 +26,11 @@ type Options struct {
 	Pattern   string `short:"p" long:"pattern" description:"Regex pattern to use." required:"false" default:"ms"`
 	Strip     bool   `short:"s" long:"strip" description:"Strip original filename, leaving only datetime (dangerous)."`
 	Build     bool   `short:"b" long:"build" description:"Show build version." required:"false"`
+	Verbose   bool   `short:"v" long:"verbose" description:"Show verbose information on actions."`
 }
 
-// Parse CLI options. Directory and File options standardized to absolute path.
-//
-// Exit:
-// 1: Invalid options.
-// 2: Logical option error.
-func ParseFlags() Options {
-	var opts Options
+func validateOptions(opts *Options) {
 	patterns := []string{"ms", "mns", "mfs", "s", "ns", "fs"}
-
-	parser := flags.NewParser(&opts, flags.Default)
-
-	parser.Usage = "[OPTIONS] \n\nRename files according to filename dates: 'YYYY-MM-DDTHH.MM.SS.SSS - {file}'"
-	opt := parser.FindOptionByLongName("pattern")
-	opt.Description =
-		"  s   - YYYYMMDD?HHMMSS\n" +
-			"  ns  - YYYY?MM?DD?HH?MM?SS\n" +
-			"  fs  - YYYYMMDDHHMMSS\n" +
-			"  mns - YYYY?MM?DD?HH?MM?SS?SSS\n" +
-			"  mfs - YYYYMMDDHHMMSSSSS\n" +
-			"  ms  - YYYYMMDD?HHMMSSSSS\n"
-
-	if _, err := parser.Parse(); err != nil {
-		os.Exit(1)
-	}
 
 	if opts.Pattern != "" {
 		if !slices.Contains(patterns, strings.ToLower(opts.Pattern)) {
@@ -93,6 +79,56 @@ func ParseFlags() Options {
 
 		opts.Directory = absPath
 	}
+}
 
+// Parse config options. Directory and File options standardized to absolute path.
+//
+// Exit:
+// 1: Invalid options.
+// 2: Logical option error.
+func Config(path string) Options {
+	var opts Options
+	viper.SetConfigFile(path)
+
+	if err := viper.ReadInConfig(); err == nil {
+		fmt.Printf("Using: %s\n\n", viper.ConfigFileUsed())
+	}
+
+	if err := viper.Unmarshal(&opts); err != nil {
+		fmt.Printf("Invalid config: %v\n", err)
+	}
+
+	parser := flags.NewParser(&opts, flags.Default)
+	parser.Usage = "[OPTIONS] \n\nRename files according to filename dates: 'YYYY-MM-DDTHH.MM.SS.SSS - {file}'"
+	parser.LongDescription =
+		"Set default options in: ~/.config/voit.toml\n" +
+			"NOTE: Pattern flag is overridden if specified in config."
+
+	opt := parser.FindOptionByLongName("pattern")
+	opt.Description =
+		"  s   - YYYYMMDD?HHMMSS\n" +
+			"  ns  - YYYY?MM?DD?HH?MM?SS\n" +
+			"  fs  - YYYYMMDDHHMMSS\n" +
+			"  mns - YYYY?MM?DD?HH?MM?SS?SSS\n" +
+			"  mfs - YYYYMMDDHHMMSSSSS\n" +
+			"  ms  - YYYYMMDD?HHMMSSSSS\n"
+
+	if _, err := parser.Parse(); err != nil {
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			os.Exit(0)
+		}
+		os.Exit(1)
+	}
+
+	// Override default Pattern if set in config.
+	if viper.IsSet("pattern") {
+		opts.Pattern = viper.GetString("pattern")
+	}
+
+	validateOptions(&opts)
+
+	if opts.Verbose {
+		fmt.Printf("Loaded Options: %+v\n", opts)
+	}
 	return opts
 }
