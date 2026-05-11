@@ -42,7 +42,7 @@ func main() {
 		return
 	}
 
-	ExecuteRename(jobs, opts.Overwrite, opts.Verbose)
+	ExecuteRename(os.Stdout, jobs, opts.Overwrite, opts.Verbose)
 	fmt.Println("Success.")
 }
 

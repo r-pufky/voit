@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -85,33 +86,63 @@ func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern strin
 				maxWidth = job.width
 			}
 		}
-		return jobs, maxWidth, nil
+		return resolveJobCollisions(jobs), maxWidth, nil
 	}
 	return nil, 0, nil
 }
 
-func ExecuteRename(jobs []Voit, overwrite bool, verbose bool) {
+func ExecuteRename(w io.Writer, jobs []Voit, overwrite bool, verbose bool) {
 	for _, job := range jobs {
 		target := job.targetAbsPath
 
 		if !overwrite {
 			if _, err := os.Stat(target); err == nil {
 				if verbose {
-					fmt.Printf("Collision: %s", target)
+					fmt.Fprintf(w, "Collision: %s", target)
 				}
-				target = preventCollision(target, verbose)
+				target = resolveFSCollisions(w, target, verbose)
 			}
 		}
 
 		if err := os.Rename(job.sourceAbsPath, target); err != nil {
-			fmt.Printf("Error renaming %s to %s: %v\n", job.source, target, err)
+			fmt.Fprintf(w, "Error renaming %s to %s: %v\n", job.source, target, err)
 		} else if verbose {
-			fmt.Printf("Renamed: %s -> %s\n", job.source, target)
+			fmt.Fprintf(w, "Renamed: %s -> %s\n", job.source, target)
 		}
 	}
 }
 
-func preventCollision(path string, verbose bool) string {
+// For multiple jobs, resolve target collisions to present user intended action
+// FS collisions are still handled during rename if changed before renaming.
+func resolveJobCollisions(jobs []Voit) []Voit {
+	seenTargets := make(map[string]bool)
+
+	for i := range jobs {
+		original := jobs[i].target
+		unique := original
+		counter := 1
+
+		// Find all collisions with resolved jobs and generate new target number.
+		for seenTargets[unique] {
+			ext := filepath.Ext(original)
+			base := strings.TrimSuffix(original, ext)
+			unique = fmt.Sprintf("%s_%d%s", base, counter, ext)
+			counter++
+		}
+
+		if unique != original {
+			jobs[i].target = unique
+			dir := filepath.Dir(jobs[i].targetAbsPath)
+			jobs[i].targetAbsPath = filepath.Join(dir, unique)
+		}
+
+		seenTargets[unique] = true
+	}
+
+	return jobs
+}
+
+func resolveFSCollisions(w io.Writer, path string, verbose bool) string {
 	ext := filepath.Ext(path)
 	name := strings.TrimSuffix(path, ext)
 	counter := 1
@@ -120,9 +151,7 @@ func preventCollision(path string, verbose bool) string {
 	for {
 		uniquePath = fmt.Sprintf("%s_%d%s", name, counter, ext)
 		if _, err := os.Stat(uniquePath); os.IsNotExist(err) {
-			if verbose {
-				fmt.Printf("Collision (new target): %s", uniquePath)
-			}
+			fmt.Fprintf(w, "Collision (new target): %s", uniquePath)
 			break
 		}
 		counter++

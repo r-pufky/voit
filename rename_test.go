@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -118,6 +120,7 @@ func TestCreateJobs(t *testing.T) {
 }
 
 func TestExecuteRename(t *testing.T) {
+	buf := &bytes.Buffer{}
 	tempDir := t.TempDir()
 	src := filepath.Join(tempDir, "source.txt")
 	dst := filepath.Join(tempDir, "dest.txt")
@@ -130,7 +133,7 @@ func TestExecuteRename(t *testing.T) {
 		},
 	}
 
-	ExecuteRename(jobs, false, false)
+	ExecuteRename(buf, jobs, false, false)
 
 	if _, err := os.Stat(dst); os.IsNotExist(err) {
 		t.Errorf("File was not renamed to %s", dst)
@@ -140,7 +143,8 @@ func TestExecuteRename(t *testing.T) {
 	}
 }
 
-func TestExecuteRenameCollision(t *testing.T) {
+func TestExecuteRenameFSCollision(t *testing.T) {
+	buf := &bytes.Buffer{}
 	tempDir := t.TempDir()
 	src := filepath.Join(tempDir, "source.txt")
 	os.WriteFile(src, []byte("new"), 0644)
@@ -156,7 +160,7 @@ func TestExecuteRenameCollision(t *testing.T) {
 		},
 	}
 
-	ExecuteRename(jobs, false, false)
+	ExecuteRename(buf, jobs, false, false)
 
 	if data, _ := os.ReadFile(dst); string(data) != "original" {
 		t.Errorf("Original file incorrectly overwritten.")
@@ -172,5 +176,71 @@ func TestExecuteRenameCollision(t *testing.T) {
 
 	if _, err := os.Stat(src); err == nil {
 		t.Errorf("Source file %s still exists.", src)
+	}
+}
+
+func TestResolveJobCollisions(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []Voit
+		expected []Voit
+	}{
+		{
+			name: "No collisions",
+			input: []Voit{
+				{target: "file1.txt", targetAbsPath: "/tmp/file1.txt"},
+				{target: "file2.txt", targetAbsPath: "/tmp/file2.txt"},
+			},
+			expected: []Voit{
+				{target: "file1.txt", targetAbsPath: "/tmp/file1.txt"},
+				{target: "file2.txt", targetAbsPath: "/tmp/file2.txt"},
+			},
+		},
+		{
+			name: "Simple collision",
+			input: []Voit{
+				{target: "notes.txt", targetAbsPath: "/home/dest/notes.txt"},
+				{target: "notes.txt", targetAbsPath: "/home/dest/notes.txt"},
+			},
+			expected: []Voit{
+				{target: "notes.txt", targetAbsPath: "/home/dest/notes.txt"},
+				{target: "notes_1.txt", targetAbsPath: "/home/dest/notes_1.txt"},
+			},
+		},
+		{
+			name: "Multiple collisions and path preservation",
+			input: []Voit{
+				{target: "data.json", targetAbsPath: "/mnt/data.json"},
+				{target: "data.json", targetAbsPath: "/mnt/data.json"},
+				{target: "data.json", targetAbsPath: "/mnt/data.json"},
+			},
+			expected: []Voit{
+				{target: "data.json", targetAbsPath: "/mnt/data.json"},
+				{target: "data_1.json", targetAbsPath: "/mnt/data_1.json"},
+				{target: "data_2.json", targetAbsPath: "/mnt/data_2.json"},
+			},
+		},
+		{
+			name: "Collision with existing incremented name",
+			input: []Voit{
+				{target: "doc.pdf", targetAbsPath: "/usr/doc.pdf"},
+				{target: "doc_1.pdf", targetAbsPath: "/usr/doc_1.pdf"},
+				{target: "doc.pdf", targetAbsPath: "/usr/doc.pdf"},
+			},
+			expected: []Voit{
+				{target: "doc.pdf", targetAbsPath: "/usr/doc.pdf"},
+				{target: "doc_1.pdf", targetAbsPath: "/usr/doc_1.pdf"},
+				{target: "doc_2.pdf", targetAbsPath: "/usr/doc_2.pdf"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := resolveJobCollisions(tt.input)
+			if !reflect.DeepEqual(actual, tt.expected) {
+				t.Errorf("\nTest: %s\nExpected: %+v\nActual:   %+v", tt.name, tt.expected, actual)
+			}
+		})
 	}
 }
