@@ -624,6 +624,86 @@ func TestFS(t *testing.T) {
 	runFormatTests(t, tests)
 }
 
+func TestV(t *testing.T) {
+	tests := []FormatTestCase{
+		{
+			test:     "v bare",
+			filename: "2023-10-27T10.30.05.000.jpg",
+			pattern:  "v",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - 2023-10-27T10.30.05.000.jpg",
+		},
+		{
+			test:     "v bare strip",
+			filename: "2023-10-27T10.30.05.000.jpg",
+			pattern:  "v",
+			lower:    false,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.000.jpg",
+		},
+		{
+			test:     "v leading",
+			filename: "IMG_2023-10-27T10.30.05.000.jpg",
+			pattern:  "v",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - IMG_2023-10-27T10.30.05.000.jpg",
+		},
+		{
+			test:     "v leading lowercase",
+			filename: "IMG_2023-10-27T10.30.05.000.jpg",
+			pattern:  "v",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - img_2023-10-27t10.30.05.000.jpg",
+		},
+		{
+			test:     "v leading lowercase strip",
+			filename: "IMG_2023-10-27T10.30.05.000.jpg",
+			pattern:  "v",
+			lower:    true,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.000.jpg",
+		},
+		{
+			test:     "v leading and trailing",
+			filename: "PXL_2023-10-27T10.30.05.000-1.jpg",
+			pattern:  "v",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - PXL_2023-10-27T10.30.05.000-1.jpg",
+		},
+		{
+			test:     "v leading and trailing lowercase",
+			filename: "PXL_2023-10-27T10.30.05.000-1.jpg",
+			pattern:  "v",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - pxl_2023-10-27t10.30.05.000-1.jpg",
+		},
+		{
+			test:     "v additional numerics",
+			filename: "2343_2023-10-27T10.30.05.000-2342-1.jpg",
+			pattern:  "v",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - 2343_2023-10-27t10.30.05.000-2342-1.jpg",
+		},
+		{
+			test:     "v no match",
+			filename: "2023-10-27-10-30-05-456.mp4",
+			pattern:  "v",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27-10-30-05-456.mp4",
+		},
+		// No idempotency as matching source and target patterns will always expand
+		// filename.
+	}
+	runFormatTests(t, tests)
+}
+
 func TestParseFileTime(t *testing.T) {
 	tmpFile, err := os.CreateTemp("", "testfile")
 	if err != nil {

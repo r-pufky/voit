@@ -32,7 +32,7 @@ type Options struct {
 }
 
 func validateOptions(opts *Options) {
-	patterns := []string{"ms", "mns", "mfs", "s", "ns", "fs"}
+	patterns := []string{"ms", "mns", "mfs", "s", "ns", "fs", "v"}
 
 	if opts.Pattern != "" {
 		if !slices.Contains(patterns, strings.ToLower(opts.Pattern)) {
@@ -113,7 +113,8 @@ func Config(path string) Options {
 			"  fs  - YYYYMMDDHHMMSS\n" +
 			"  mns - YYYY?MM?DD?HH?MM?SS?SSS\n" +
 			"  mfs - YYYYMMDDHHMMSSSSS\n" +
-			"  ms  - YYYYMMDD?HHMMSSSSS\n"
+			"  ms  - YYYYMMDD?HHMMSSSSS\n" +
+			"  v   - YYYY-MM-DDTHH.MM.SS.SSS\n"
 
 	if _, err := parser.Parse(); err != nil {
 		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {

@@ -31,6 +31,8 @@ var patterns = map[string]*regexp.Regexp{
 	"ns": regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})`),
 	// fs - YYYYMMDDHHMMSS.
 	"fs": regexp.MustCompile(`(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})`),
+	// v - YYYY-MM-DDTHH.MM.SS.SSS.
+	"v": regexp.MustCompile(`(\d{4})-(\d{2})-(\d{2})T(\d{2})\.(\d{2})\.(\d{2})\.(\d{3})`),
 }
 
 // Parse time object from given file name and filter.
@@ -85,7 +87,8 @@ func parseFileTime(file string, created bool, modified bool) (time.Time, error) 
 	), nil
 }
 
-// Return target file name, ignoring any files already using the Voit method.
+// Return target file. Ignore files already using Voit method unless explicitly
+// renaming Voit file names.
 func FormatName(filename string, pattern string, lower bool, strip bool, created bool, modified bool) string {
 	var date time.Time
 	var err error
@@ -98,7 +101,7 @@ func FormatName(filename string, pattern string, lower bool, strip bool, created
 	if err != nil {
 		return filename
 	}
-	if strings.HasPrefix(filename, date.Format("2006-01-02T15.04.05.000")) {
+	if strings.HasPrefix(filename, date.Format("2006-01-02T15.04.05.000")) && pattern != "v" {
 		return filename
 	}
 

@@ -107,7 +107,7 @@ func ExecuteRename(w io.Writer, jobs []Voit, overwrite bool, verbose bool) {
 		if err := os.Rename(job.sourceAbsPath, target); err != nil {
 			fmt.Fprintf(w, "Error renaming %s to %s: %v\n", job.source, target, err)
 		} else if verbose {
-			fmt.Fprintf(w, "Renamed: %s -> %s\n", job.source, target)
+			fmt.Fprintf(w, "Renamed: %s ➔ %s\n", job.source, target)
 		}
 	}
 }
