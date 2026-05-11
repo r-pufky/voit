@@ -11,7 +11,7 @@ import (
 // A job is only added if a transformation is required.
 func addJob(sourceFileAbsPath string, pattern string, lower bool, strip bool, created bool, modified bool) (*Voit, error) {
 	if sourceFileAbsPath == "" {
-		return nil, errors.New("no source file provided")
+		return nil, errors.New("no source file provided.")
 	}
 	_, err := os.Stat(sourceFileAbsPath)
 	if err != nil {
@@ -46,14 +46,6 @@ func addJob(sourceFileAbsPath string, pattern string, lower bool, strip bool, cr
 // if source file is empty. Jobs are only added if a transformation is
 // required.
 func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern string, lower bool, strip bool, created bool, modified bool) ([]Voit, int, error) {
-	// Defensive recheck options.
-	if sourceFileAbsPath == "" && sourceDirAbsPath == "" {
-		return nil, 0, errors.New("No source file or directory specified.")
-	}
-	if sourceFileAbsPath != "" && sourceDirAbsPath != "" {
-		return nil, 0, errors.New("Only specify file or directory.")
-	}
-
 	var jobs []Voit
 	maxWidth := 0
 

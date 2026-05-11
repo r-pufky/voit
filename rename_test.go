@@ -95,20 +95,6 @@ func TestCreateJobs(t *testing.T) {
 
 	pattern := "ms"
 
-	t.Run("Mutual exclusion check - Both provided", func(t *testing.T) {
-		_, _, err := CreateJobs(renameFile, tempDir, pattern, true, false, false, false)
-		if err == nil || err.Error() != "Only specify file or directory." {
-			t.Errorf("Expected mutual exclusion error, got %v", err)
-		}
-	})
-
-	t.Run("Mutual exclusion check - Neither provided", func(t *testing.T) {
-		_, _, err := CreateJobs("", "", pattern, true, false, false, false)
-		if err == nil || err.Error() != "No source file or directory specified." {
-			t.Errorf("Expected no source error, got %v", err)
-		}
-	})
-
 	t.Run("Single file success", func(t *testing.T) {
 		jobs, width, err := CreateJobs(renameFile, "", pattern, true, false, false, false)
 		if err != nil || len(jobs) != 1 {
