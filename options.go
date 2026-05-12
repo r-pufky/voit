@@ -32,7 +32,7 @@ type Options struct {
 }
 
 func validateOptions(opts *Options) {
-	patterns := []string{"ms", "mns", "mfs", "s", "ns", "fs", "v"}
+	patterns := []string{"ms", "mns", "mfs", "s", "ns", "fs", "w", "v"}
 
 	if opts.Pattern != "" {
 		if !slices.Contains(patterns, strings.ToLower(opts.Pattern)) {
@@ -108,13 +108,15 @@ func Config(path string) Options {
 
 	opt := parser.FindOptionByLongName("pattern")
 	opt.Description =
-		"  s   - YYYYMMDD?HHMMSS\n" +
-			"  ns  - YYYY?MM?DD?HH?MM?SS\n" +
-			"  fs  - YYYYMMDDHHMMSS\n" +
-			"  mns - YYYY?MM?DD?HH?MM?SS?SSS\n" +
-			"  mfs - YYYYMMDDHHMMSSSSS\n" +
-			"  ms  - YYYYMMDD?HHMMSSSSS\n" +
-			"  v   - YYYY-MM-DDTHH.MM.SS.SSS\n"
+		"  Opt │ Regex                   │ Common Use\n" +
+			"  s   │ YYYYMMDD?HHMMSS         │ Photos\n" +
+			"  ns  │ YYYY?MM?DD?HH?MM?SS     │ Signal\n" +
+			"  fs  │ YYYYMMDDHHMMSS          │ Naked 8601\n" +
+			"  mns │ YYYY?MM?DD?HH?MM?SS?SSS │ Signal (ms)\n" +
+			"  mfs │ YYYYMMDDHHMMSSSSS       │ Naked 8601 (ms)\n" +
+			"  ms  │ YYYYMMDD?HHMMSSSSS      │ Photos (ms)\n" +
+			"  w   │ SSSSSSSSSSSSSSSSS       │ Chrome Webkit Epoch\n" +
+			"  v   │ YYYY-MM-DDTHH.MM.SS.SSS │ Voit Scheme\n"
 
 	if _, err := parser.Parse(); err != nil {
 		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {

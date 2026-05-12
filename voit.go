@@ -18,6 +18,11 @@ import (
 	"time"
 )
 
+const (
+	webkitEpochOffset = 11644473600 // Secs between Jan 1, 1601 and Jan 1, 1970.
+	msPerSec          = 1000000
+)
+
 var patterns = map[string]*regexp.Regexp{
 	// ms - YYYYMMDD_HHMMSSSSS.
 	"ms": regexp.MustCompile(`(\d{4})(\d{2})(\d{2})\D(\d{2})(\d{2})(\d{2})(\d{3})`),
@@ -33,12 +38,14 @@ var patterns = map[string]*regexp.Regexp{
 	"fs": regexp.MustCompile(`(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})`),
 	// v - YYYY-MM-DDTHH.MM.SS.SSS.
 	"v": regexp.MustCompile(`(\d{4})-(\d{2})-(\d{2})T(\d{2})\.(\d{2})\.(\d{2})\.(\d{3})`),
+	// w - SSSSSSSSSSSSSSSSS (https://www.epochconverter.com/webkit).
+	"w": regexp.MustCompile(`(\d{17})`),
 }
 
 // Parse time object from given file name and filter.
 func parseFile(file string, pattern string) (time.Time, error) {
-	regex := patterns[pattern]
-	if match := regex.FindStringSubmatch(file); len(match) >= 7 {
+	match := patterns[pattern].FindStringSubmatch(file)
+	if len(match) >= 7 {
 		year, _ := strconv.Atoi(match[1])
 		month, _ := strconv.Atoi(match[2])
 		day, _ := strconv.Atoi(match[3])
@@ -54,7 +61,27 @@ func parseFile(file string, pattern string) (time.Time, error) {
 		return time.Date(year, time.Month(month), day, hour, min, sec, ms*int(time.Millisecond), time.UTC), nil
 	}
 
-	return time.Time{}, fmt.Errorf("no date pattern matched file: %s", file)
+	if len(match) == 2 {
+		ms, err := strconv.ParseInt(match[1], 10, 64)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("Invalid Webkit format: %s", file)
+		}
+		sec := (ms / msPerSec) - webkitEpochOffset
+		date := time.Unix(sec, (ms%msPerSec)*1000).UTC()
+
+		return time.Date(
+			date.Year(),
+			date.Month(),
+			date.Day(),
+			date.Hour(),
+			date.Minute(),
+			date.Second(),
+			date.Nanosecond(),
+			time.UTC,
+		), nil
+	}
+
+	return time.Time{}, fmt.Errorf("No date pattern matched file: %s", file)
 }
 
 // Parse file creation or modification time.

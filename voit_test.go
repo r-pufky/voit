@@ -624,6 +624,86 @@ func TestFS(t *testing.T) {
 	runFormatTests(t, tests)
 }
 
+func TestW(t *testing.T) {
+	tests := []FormatTestCase{
+		{
+			test:     "w bare",
+			filename: "13423083387000000.jpg",
+			pattern:  "w",
+			lower:    false,
+			strip:    false,
+			want:     "2026-05-12T18.16.27.000 - 13423083387000000.jpg",
+		},
+		{
+			test:     "w bare strip",
+			filename: "13423083387000000.jpg",
+			pattern:  "w",
+			lower:    false,
+			strip:    true,
+			want:     "2026-05-12T18.16.27.000.jpg",
+		},
+		{
+			test:     "w leading",
+			filename: "IMG_13423083387000000.jpg",
+			pattern:  "w",
+			lower:    false,
+			strip:    false,
+			want:     "2026-05-12T18.16.27.000 - IMG_13423083387000000.jpg",
+		},
+		{
+			test:     "w leading lowercase",
+			filename: "IMG_13423083387000000.jpg",
+			pattern:  "w",
+			lower:    true,
+			strip:    false,
+			want:     "2026-05-12T18.16.27.000 - img_13423083387000000.jpg",
+		},
+		{
+			test:     "w leading lowercase strip",
+			filename: "IMG_13423083387000000.jpg",
+			pattern:  "w",
+			lower:    true,
+			strip:    true,
+			want:     "2026-05-12T18.16.27.000.jpg",
+		},
+		{
+			test:     "w leading and trailing",
+			filename: "PXL_13423083387000000-1.jpg",
+			pattern:  "w",
+			lower:    false,
+			strip:    false,
+			want:     "2026-05-12T18.16.27.000 - PXL_13423083387000000-1.jpg",
+		},
+		{
+			test:     "w leading and trailing lowercase",
+			filename: "PXL_13423083387000000-1.jpg",
+			pattern:  "w",
+			lower:    true,
+			strip:    false,
+			want:     "2026-05-12T18.16.27.000 - pxl_13423083387000000-1.jpg",
+		},
+		{
+			test:     "w additional numerics",
+			filename: "2343_13423083387000000-2342-1.jpg",
+			pattern:  "w",
+			lower:    true,
+			strip:    false,
+			want:     "2026-05-12T18.16.27.000 - 2343_13423083387000000-2342-1.jpg",
+		},
+		{
+			test:     "w no match",
+			filename: "2023-10-27-10-30-05-456.mp4",
+			pattern:  "w",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27-10-30-05-456.mp4",
+		},
+		// No idempotency as matching source and target patterns will always expand
+		// filename.
+	}
+	runFormatTests(t, tests)
+}
+
 func TestV(t *testing.T) {
 	tests := []FormatTestCase{
 		{
