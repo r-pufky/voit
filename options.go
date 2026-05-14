@@ -8,6 +8,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -87,16 +88,16 @@ func validateOptions(opts *Options) {
 // Exit:
 // 1: Invalid options.
 // 2: Logical option error.
-func Config(path string) Options {
+func Config(w io.Writer, path string) Options {
 	var opts Options
 	viper.SetConfigFile(path)
 
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Printf("Using: %s\n\n", viper.ConfigFileUsed())
+		fmt.Fprintf(w, "Using: %s\n\n", viper.ConfigFileUsed())
 	}
 
 	if err := viper.Unmarshal(&opts); err != nil {
-		fmt.Printf("Invalid config: %v\n", err)
+		fmt.Fprintf(w, "Invalid config: %v\n", err)
 	}
 
 	parser := flags.NewParser(&opts, flags.Default)
@@ -108,15 +109,18 @@ func Config(path string) Options {
 
 	opt := parser.FindOptionByLongName("pattern")
 	opt.Description =
-		"  Opt │ Regex                   │ Common Use\n" +
-			"  s   │ YYYYMMDD?HHMMSS         │ Photos\n" +
-			"  ns  │ YYYY?MM?DD?HH?MM?SS     │ Signal\n" +
-			"  fs  │ YYYYMMDDHHMMSS          │ Naked 8601\n" +
-			"  mns │ YYYY?MM?DD?HH?MM?SS?SSS │ Signal (ms)\n" +
-			"  mfs │ YYYYMMDDHHMMSSSSS       │ Naked 8601 (ms)\n" +
-			"  ms  │ YYYYMMDD?HHMMSSSSS      │ Photos (ms)\n" +
-			"  w   │ SSSSSSSSSSSSSSSSS       │ Chrome Webkit Epoch\n" +
-			"  v   │ YYYY-MM-DDTHH.MM.SS.SSS │ Voit Scheme\n"
+		"  Opt  │ Regex                   │ Common Use\n" +
+			"  ms   │ YYYYMMDD░HHMMSSSSS      │ Photos (ms)\n" +
+			"  s    │ YYYYMMDD░HHMMSS         │ Photos\n" +
+			"  mns  │ YYYY░MM░DD░HH░MM░SS░SSS │ Signal (ms)\n" +
+			"  ns   │ YYYY░MM░DD░HH░MM░SS     │ Signal\n" +
+			"  hmfs │ YYYY░MM░DD░HHMMSSSSS    │ Partial 8601 (ms)\n" +
+			"  hfs  │ YYYY░MM░DD░HHMMSS       │ Partial 8601\n" +
+			"  hsfs │ YYYY░MM░DD░HHMM         │ Partial 8601 (short)\n" +
+			"  mfs  │ YYYYMMDDHHMMSSSSS       │ Naked 8601 (ms)\n" +
+			"  fs   │ YYYYMMDDHHMMSS          │ Naked 8601\n" +
+			"  w    │ SSSSSSSSSSSSSSSSS       │ Chrome Webkit Epoch\n" +
+			"  v    │ YYYY-MM-DDTHH.MM.SS.SSS │ Voit Scheme\n"
 
 	if _, err := parser.Parse(); err != nil {
 		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
@@ -133,7 +137,7 @@ func Config(path string) Options {
 	validateOptions(&opts)
 
 	if opts.Verbose {
-		fmt.Printf("Loaded Options: %+v\n", opts)
+		fmt.Fprintf(w, "Loaded Options: %+v\n", opts)
 	}
 	return opts
 }

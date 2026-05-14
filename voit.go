@@ -36,6 +36,12 @@ var patterns = map[string]*regexp.Regexp{
 	"ns": regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})`),
 	// fs - YYYYMMDDHHMMSS.
 	"fs": regexp.MustCompile(`(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})`),
+	// hsfs - YYYY-MM-DD-HHMM
+	"hsfs": regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})(\d{2})`),
+	// hfs - YYYY-MM-DD-HHMMSS
+	"hfs": regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})(\d{2})(\d{2})`),
+	// hmfs - YYYY-MM-DD-HHMMSSSSS
+	"hmfs": regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})(\d{2})(\d{2})(\d{3})`),
 	// v - YYYY-MM-DDTHH.MM.SS.SSS.
 	"v": regexp.MustCompile(`(\d{4})-(\d{2})-(\d{2})T(\d{2})\.(\d{2})\.(\d{2})\.(\d{3})`),
 	// w - SSSSSSSSSSSSSSSSS (https://www.epochconverter.com/webkit).
@@ -59,6 +65,16 @@ func parseFile(file string, pattern string) (time.Time, error) {
 		}
 
 		return time.Date(year, time.Month(month), day, hour, min, sec, ms*int(time.Millisecond), time.UTC), nil
+	}
+
+	if len(match) == 6 {
+		year, _ := strconv.Atoi(match[1])
+		month, _ := strconv.Atoi(match[2])
+		day, _ := strconv.Atoi(match[3])
+		hour, _ := strconv.Atoi(match[4])
+		min, _ := strconv.Atoi(match[5])
+
+		return time.Date(year, time.Month(month), day, hour, min, 0, 0, time.UTC), nil
 	}
 
 	if len(match) == 2 {

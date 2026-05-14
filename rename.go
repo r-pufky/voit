@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // A job is only added if a transformation is required.
@@ -92,6 +93,7 @@ func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern strin
 }
 
 func ExecuteRename(w io.Writer, jobs []Voit, overwrite bool, verbose bool) {
+	defer timeRename(w, time.Now(), len(jobs))
 	for _, job := range jobs {
 		target := job.targetAbsPath
 
@@ -157,4 +159,9 @@ func resolveFSCollisions(w io.Writer, path string, verbose bool) string {
 		counter++
 	}
 	return uniquePath
+}
+
+func timeRename(w io.Writer, start time.Time, count int) {
+	elapsed := time.Since(start)
+	fmt.Fprintf(w, "Renamed %d files in %s.", count, elapsed)
 }

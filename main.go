@@ -21,7 +21,7 @@ type Voit struct {
 
 func main() {
 	home, _ := os.UserHomeDir()
-	opts := Config(filepath.Join(home, ".config", "voit.toml"))
+	opts := Config(os.Stdout, filepath.Join(home, ".config", "voit.toml"))
 
 	jobs, width, _ := CreateJobs(opts.File, opts.Directory, opts.Pattern, opts.Lower, opts.Strip, opts.Created, opts.Modified)
 
@@ -43,7 +43,6 @@ func main() {
 	}
 
 	ExecuteRename(os.Stdout, jobs, opts.Overwrite, opts.Verbose)
-	fmt.Println("Success.")
 }
 
 func DisplayPending(out io.Writer, jobs []Voit, width int) {

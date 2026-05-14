@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,6 +12,8 @@ import (
 
 // Wrap exit in sub process to capture exit codes.
 func TestHelperProcess(t *testing.T) {
+	buf := &bytes.Buffer{}
+
 	if os.Getenv("WANT_HELPER_PROCESS") != "1" {
 		return
 	}
@@ -23,7 +26,7 @@ func TestHelperProcess(t *testing.T) {
 		}
 	}
 
-	Config("/tmp/non-existent-voit.toml")
+	Config(buf, "/tmp/non-existent-voit.toml")
 	os.Exit(0)
 }
 
@@ -140,6 +143,7 @@ Directory = "/tmp/override"
 
 	for _, tt := range tests {
 		t.Run(tt.test, func(t *testing.T) {
+			buf := &bytes.Buffer{}
 			// Setup testing config if used.
 			viper.Reset()
 			tmpDir := t.TempDir()
@@ -159,7 +163,7 @@ Directory = "/tmp/override"
 			defer func() { os.Args = oldArgs }()
 			os.Args = append([]string{"cmd"}, tt.args...)
 
-			opts := Config(config)
+			opts := Config(buf, config)
 
 			if opts.Directory != tt.wantDir {
 				t.Errorf("Directory: got %s, want %s", opts.Directory, tt.wantDir)

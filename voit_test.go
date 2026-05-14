@@ -698,8 +698,22 @@ func TestW(t *testing.T) {
 			strip:    false,
 			want:     "2023-10-27-10-30-05-456.mp4",
 		},
-		// No idempotency as matching source and target patterns will always expand
-		// filename.
+		{
+			test:     "w idempotency",
+			filename: "2026-05-12T18.16.27.000 - 2343_13423083387000000-2342-1.jpg",
+			pattern:  "w",
+			lower:    false,
+			strip:    false,
+			want:     "2026-05-12T18.16.27.000 - 2343_13423083387000000-2342-1.jpg",
+		},
+		{
+			test:     "w idempotency lowercase",
+			filename: "2026-05-12T18.16.27.000 - PXL_13423083387000000-2342-1.jpg",
+			pattern:  "w",
+			lower:    true,
+			strip:    false,
+			want:     "2026-05-12T18.16.27.000 - PXL_13423083387000000-2342-1.jpg",
+		},
 	}
 	runFormatTests(t, tests)
 }
@@ -780,6 +794,288 @@ func TestV(t *testing.T) {
 		},
 		// No idempotency as matching source and target patterns will always expand
 		// filename.
+	}
+	runFormatTests(t, tests)
+}
+
+func TestHFS(t *testing.T) {
+	tests := []FormatTestCase{
+		{
+			test:     "hfs bare",
+			filename: "2023-10-27T103005.jpg",
+			pattern:  "hfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - 2023-10-27T103005.jpg",
+		},
+		{
+			test:     "hfs bare strip",
+			filename: "2023-10-27T103005.jpg",
+			pattern:  "hfs",
+			lower:    false,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.000.jpg",
+		},
+		{
+			test:     "hfs leading",
+			filename: "IMG_2023-10-27T103005.jpg",
+			pattern:  "hfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - IMG_2023-10-27T103005.jpg",
+		},
+		{
+			test:     "hfs leading lowercase",
+			filename: "IMG_2023-10-27T103005.jpg",
+			pattern:  "hfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - img_2023-10-27t103005.jpg",
+		},
+		{
+			test:     "hfs leading lowercase strip",
+			filename: "IMG_2023-10-27T103005.jpg",
+			pattern:  "hfs",
+			lower:    true,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.000.jpg",
+		},
+		{
+			test:     "hfs leading and trailing",
+			filename: "PXL_2023-10-27T103005-1.jpg",
+			pattern:  "hfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - PXL_2023-10-27T103005-1.jpg",
+		},
+		{
+			test:     "hfs leading and trailing lowercase",
+			filename: "PXL_2023-10-27T103005-1.jpg",
+			pattern:  "hfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - pxl_2023-10-27t103005-1.jpg",
+		},
+		{
+			test:     "hfs additional numerics",
+			filename: "2343_2023-10-27T103005-2342-1.jpg",
+			pattern:  "hfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - 2343_2023-10-27t103005-2342-1.jpg",
+		},
+		{
+			test:     "hfs no match",
+			filename: "2023-10-27-10-30-05-456.mp4",
+			pattern:  "hfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27-10-30-05-456.mp4",
+		},
+		{
+			test:     "hfs idempotency",
+			filename: "2023-10-27T10.30.05.000 - IMG_2023-10-27T103005.jpg",
+			pattern:  "hfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - IMG_2023-10-27T103005.jpg",
+		},
+		{
+			test:     "hfs idempotency lowercase",
+			filename: "2023-10-27T10.30.05.000 - IMG_2023-10-27T103005.jpg",
+			pattern:  "hfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.000 - IMG_2023-10-27T103005.jpg",
+		},
+	}
+	runFormatTests(t, tests)
+}
+
+func TestHSFS(t *testing.T) {
+	tests := []FormatTestCase{
+		{
+			test:     "hsfs bare",
+			filename: "2023-10-27T1030.jpg",
+			pattern:  "hsfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.00.000 - 2023-10-27T1030.jpg",
+		},
+		{
+			test:     "hsfs bare strip",
+			filename: "2023-10-27T1030.jpg",
+			pattern:  "hsfs",
+			lower:    false,
+			strip:    true,
+			want:     "2023-10-27T10.30.00.000.jpg",
+		},
+		{
+			test:     "hsfs leading",
+			filename: "IMG_2023-10-27T1030.jpg",
+			pattern:  "hsfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.00.000 - IMG_2023-10-27T1030.jpg",
+		},
+		{
+			test:     "hsfs leading lowercase",
+			filename: "IMG_2023-10-27T1030.jpg",
+			pattern:  "hsfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.00.000 - img_2023-10-27t1030.jpg",
+		},
+		{
+			test:     "hsfs leading lowercase strip",
+			filename: "IMG_2023-10-27T1030.jpg",
+			pattern:  "hsfs",
+			lower:    true,
+			strip:    true,
+			want:     "2023-10-27T10.30.00.000.jpg",
+		},
+		{
+			test:     "hsfs leading and trailing",
+			filename: "PXL_2023-10-27T103005-1.jpg",
+			pattern:  "hsfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.00.000 - PXL_2023-10-27T103005-1.jpg",
+		},
+		{
+			test:     "hsfs leading and trailing lowercase",
+			filename: "PXL_2023-10-27T103005-1.jpg",
+			pattern:  "hsfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.00.000 - pxl_2023-10-27t103005-1.jpg",
+		},
+		{
+			test:     "hsfs additional numerics",
+			filename: "2343_2023-10-27T103005-2342-1.jpg",
+			pattern:  "hsfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.00.000 - 2343_2023-10-27t103005-2342-1.jpg",
+		},
+		{
+			test:     "hsfs no match",
+			filename: "2023-10-27-10-30-05-456.mp4",
+			pattern:  "hsfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27-10-30-05-456.mp4",
+		},
+		{
+			test:     "hsfs idempotency",
+			filename: "2023-10-27T10.30.00.000 - IMG_2023-10-27T1030.jpg",
+			pattern:  "hsfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.00.000 - IMG_2023-10-27T1030.jpg",
+		},
+		{
+			test:     "hsfs idempotency lowercase",
+			filename: "2023-10-27T10.30.00.000 - IMG_2023-10-27T1030.jpg",
+			pattern:  "hsfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.00.000 - IMG_2023-10-27T1030.jpg",
+		},
+	}
+	runFormatTests(t, tests)
+}
+
+func TestHMFS(t *testing.T) {
+	tests := []FormatTestCase{
+		{
+			test:     "hmfs bare",
+			filename: "2023-10-27T103005123.jpg",
+			pattern:  "hmfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.123 - 2023-10-27T103005123.jpg",
+		},
+		{
+			test:     "hmfs bare strip",
+			filename: "2023-10-27T103005123.jpg",
+			pattern:  "hmfs",
+			lower:    false,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.123.jpg",
+		},
+		{
+			test:     "hmfs leading",
+			filename: "IMG_2023-10-27T103005123.jpg",
+			pattern:  "hmfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.123 - IMG_2023-10-27T103005123.jpg",
+		},
+		{
+			test:     "hmfs leading lowercase",
+			filename: "IMG_2023-10-27T103005123.jpg",
+			pattern:  "hmfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.123 - img_2023-10-27t103005123.jpg",
+		},
+		{
+			test:     "hmfs leading lowercase strip",
+			filename: "IMG_2023-10-27T103005123.jpg",
+			pattern:  "hmfs",
+			lower:    true,
+			strip:    true,
+			want:     "2023-10-27T10.30.05.123.jpg",
+		},
+		{
+			test:     "hmfs leading and trailing",
+			filename: "PXL_2023-10-27T103005123-1.jpg",
+			pattern:  "hmfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.123 - PXL_2023-10-27T103005123-1.jpg",
+		},
+		{
+			test:     "hmfs leading and trailing lowercase",
+			filename: "PXL_2023-10-27T103005123-1.jpg",
+			pattern:  "hmfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.123 - pxl_2023-10-27t103005123-1.jpg",
+		},
+		{
+			test:     "hmfs additional numerics",
+			filename: "2343_2023-10-27T103005123-2342-1.jpg",
+			pattern:  "hmfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.123 - 2343_2023-10-27t103005123-2342-1.jpg",
+		},
+		{
+			test:     "hmfs no match",
+			filename: "2023-10-27-10-30-05-456.mp4",
+			pattern:  "hmfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27-10-30-05-456.mp4",
+		},
+		{
+			test:     "hmfs idempotency",
+			filename: "2023-10-27T10.30.05.123 - IMG_2023-10-27T103005123.jpg",
+			pattern:  "hmfs",
+			lower:    false,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.123 - IMG_2023-10-27T103005123.jpg",
+		},
+		{
+			test:     "ns idempotency lowercase",
+			filename: "2023-10-27T10.30.05.123 - IMG_2023-10-27T103005123.jpg",
+			pattern:  "hmfs",
+			lower:    true,
+			strip:    false,
+			want:     "2023-10-27T10.30.05.123 - IMG_2023-10-27T103005123.jpg",
+		},
 	}
 	runFormatTests(t, tests)
 }
