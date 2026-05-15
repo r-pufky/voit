@@ -4,7 +4,7 @@
 // no separators are used. Valid separator is any non-numeric character.
 //
 // https://karl-voit.at/folder-hierarchy
-package main
+package internal
 
 import (
 	"fmt"

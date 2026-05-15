@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"errors"
@@ -8,10 +8,12 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/r-pufky/voit/models"
 )
 
 // A job is only added if a transformation is required.
-func addJob(sourceFileAbsPath string, pattern string, lower bool, strip bool, created bool, modified bool) (*Voit, error) {
+func addJob(sourceFileAbsPath string, pattern string, lower bool, strip bool, created bool, modified bool) (*models.Job, error) {
 	if sourceFileAbsPath == "" {
 		return nil, errors.New("no source file provided.")
 	}
@@ -31,13 +33,13 @@ func addJob(sourceFileAbsPath string, pattern string, lower bool, strip bool, cr
 			return nil, nil
 		}
 
-		return &Voit{
-			dir:           absDir,
-			source:        baseName,
-			sourceAbsPath: sourceFileAbsPath,
-			target:        targetName,
-			targetAbsPath: targetAbsPath,
-			width:         len(baseName),
+		return &models.Job{
+			Dir:           absDir,
+			Source:        baseName,
+			SourceAbsPath: sourceFileAbsPath,
+			Target:        targetName,
+			TargetAbsPath: targetAbsPath,
+			Width:         len(baseName),
 		}, nil
 	}
 
@@ -47,8 +49,8 @@ func addJob(sourceFileAbsPath string, pattern string, lower bool, strip bool, cr
 // Create rename jobs from provided source file and directory. Enumerate files
 // if source file is empty. Jobs are only added if a transformation is
 // required.
-func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern string, lower bool, strip bool, created bool, modified bool) ([]Voit, int, error) {
-	var jobs []Voit
+func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern string, lower bool, strip bool, created bool, modified bool) ([]models.Job, int, error) {
+	var jobs []models.Job
 	maxWidth := 0
 
 	if sourceFileAbsPath != "" {
@@ -59,7 +61,7 @@ func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern strin
 		if job == nil {
 			return nil, 0, nil
 		}
-		return append(jobs, *job), job.width, nil
+		return append(jobs, *job), job.Width, nil
 	}
 
 	if sourceDirAbsPath != "" {
@@ -83,8 +85,8 @@ func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern strin
 			}
 
 			jobs = append(jobs, *job)
-			if job.width > maxWidth {
-				maxWidth = job.width
+			if job.Width > maxWidth {
+				maxWidth = job.Width
 			}
 		}
 		return resolveJobCollisions(jobs), maxWidth, nil
@@ -92,10 +94,10 @@ func CreateJobs(sourceFileAbsPath string, sourceDirAbsPath string, pattern strin
 	return nil, 0, nil
 }
 
-func ExecuteRename(w io.Writer, jobs []Voit, overwrite bool, verbose bool) {
+func ExecuteRename(w io.Writer, jobs []models.Job, overwrite bool, verbose bool) {
 	defer timeRename(w, time.Now(), len(jobs))
 	for _, job := range jobs {
-		target := job.targetAbsPath
+		target := job.TargetAbsPath
 
 		if !overwrite {
 			if _, err := os.Stat(target); err == nil {
@@ -106,21 +108,21 @@ func ExecuteRename(w io.Writer, jobs []Voit, overwrite bool, verbose bool) {
 			}
 		}
 
-		if err := os.Rename(job.sourceAbsPath, target); err != nil {
-			fmt.Fprintf(w, "Error renaming %s to %s: %v\n", job.source, target, err)
+		if err := os.Rename(job.SourceAbsPath, target); err != nil {
+			fmt.Fprintf(w, "Error renaming %s to %s: %v\n", job.Source, target, err)
 		} else if verbose {
-			fmt.Fprintf(w, "Renamed: %s ➔ %s\n", job.source, target)
+			fmt.Fprintf(w, "Renamed: %s ➔ %s\n", job.Source, target)
 		}
 	}
 }
 
 // For multiple jobs, resolve target collisions to present user intended action
 // FS collisions are still handled during rename if changed before renaming.
-func resolveJobCollisions(jobs []Voit) []Voit {
+func resolveJobCollisions(jobs []models.Job) []models.Job {
 	seenTargets := make(map[string]bool)
 
 	for i := range jobs {
-		original := jobs[i].target
+		original := jobs[i].Target
 		unique := original
 		counter := 1
 
@@ -133,9 +135,9 @@ func resolveJobCollisions(jobs []Voit) []Voit {
 		}
 
 		if unique != original {
-			jobs[i].target = unique
-			dir := filepath.Dir(jobs[i].targetAbsPath)
-			jobs[i].targetAbsPath = filepath.Join(dir, unique)
+			jobs[i].Target = unique
+			dir := filepath.Dir(jobs[i].TargetAbsPath)
+			jobs[i].TargetAbsPath = filepath.Join(dir, unique)
 		}
 
 		seenTargets[unique] = true

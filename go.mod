@@ -1,4 +1,4 @@
-module voit
+module github.com/r-pufky/voit
 
 go 1.26.2
 

@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/r-pufky/voit/models"
 )
 
 func TestAddJob(t *testing.T) {
@@ -126,10 +128,10 @@ func TestExecuteRename(t *testing.T) {
 	dst := filepath.Join(tempDir, "dest.txt")
 	os.WriteFile(src, []byte("hello"), 0644)
 
-	jobs := []Voit{
+	jobs := []models.Job{
 		{
-			sourceAbsPath: src,
-			targetAbsPath: dst,
+			SourceAbsPath: src,
+			TargetAbsPath: dst,
 		},
 	}
 
@@ -153,10 +155,10 @@ func TestExecuteRenameFSCollision(t *testing.T) {
 
 	expectedDst := filepath.Join(tempDir, "dest_1.txt")
 
-	jobs := []Voit{
+	jobs := []models.Job{
 		{
-			sourceAbsPath: src,
-			targetAbsPath: dst,
+			SourceAbsPath: src,
+			TargetAbsPath: dst,
 		},
 	}
 
@@ -182,55 +184,55 @@ func TestExecuteRenameFSCollision(t *testing.T) {
 func TestResolveJobCollisions(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    []Voit
-		expected []Voit
+		input    []models.Job
+		expected []models.Job
 	}{
 		{
 			name: "No collisions",
-			input: []Voit{
-				{target: "file1.txt", targetAbsPath: "/tmp/file1.txt"},
-				{target: "file2.txt", targetAbsPath: "/tmp/file2.txt"},
+			input: []models.Job{
+				{Target: "file1.txt", TargetAbsPath: "/tmp/file1.txt"},
+				{Target: "file2.txt", TargetAbsPath: "/tmp/file2.txt"},
 			},
-			expected: []Voit{
-				{target: "file1.txt", targetAbsPath: "/tmp/file1.txt"},
-				{target: "file2.txt", targetAbsPath: "/tmp/file2.txt"},
+			expected: []models.Job{
+				{Target: "file1.txt", TargetAbsPath: "/tmp/file1.txt"},
+				{Target: "file2.txt", TargetAbsPath: "/tmp/file2.txt"},
 			},
 		},
 		{
 			name: "Simple collision",
-			input: []Voit{
-				{target: "notes.txt", targetAbsPath: "/home/dest/notes.txt"},
-				{target: "notes.txt", targetAbsPath: "/home/dest/notes.txt"},
+			input: []models.Job{
+				{Target: "notes.txt", TargetAbsPath: "/home/dest/notes.txt"},
+				{Target: "notes.txt", TargetAbsPath: "/home/dest/notes.txt"},
 			},
-			expected: []Voit{
-				{target: "notes.txt", targetAbsPath: "/home/dest/notes.txt"},
-				{target: "notes_1.txt", targetAbsPath: "/home/dest/notes_1.txt"},
+			expected: []models.Job{
+				{Target: "notes.txt", TargetAbsPath: "/home/dest/notes.txt"},
+				{Target: "notes_1.txt", TargetAbsPath: "/home/dest/notes_1.txt"},
 			},
 		},
 		{
 			name: "Multiple collisions and path preservation",
-			input: []Voit{
-				{target: "data.json", targetAbsPath: "/mnt/data.json"},
-				{target: "data.json", targetAbsPath: "/mnt/data.json"},
-				{target: "data.json", targetAbsPath: "/mnt/data.json"},
+			input: []models.Job{
+				{Target: "data.json", TargetAbsPath: "/mnt/data.json"},
+				{Target: "data.json", TargetAbsPath: "/mnt/data.json"},
+				{Target: "data.json", TargetAbsPath: "/mnt/data.json"},
 			},
-			expected: []Voit{
-				{target: "data.json", targetAbsPath: "/mnt/data.json"},
-				{target: "data_1.json", targetAbsPath: "/mnt/data_1.json"},
-				{target: "data_2.json", targetAbsPath: "/mnt/data_2.json"},
+			expected: []models.Job{
+				{Target: "data.json", TargetAbsPath: "/mnt/data.json"},
+				{Target: "data_1.json", TargetAbsPath: "/mnt/data_1.json"},
+				{Target: "data_2.json", TargetAbsPath: "/mnt/data_2.json"},
 			},
 		},
 		{
 			name: "Collision with existing incremented name",
-			input: []Voit{
-				{target: "doc.pdf", targetAbsPath: "/usr/doc.pdf"},
-				{target: "doc_1.pdf", targetAbsPath: "/usr/doc_1.pdf"},
-				{target: "doc.pdf", targetAbsPath: "/usr/doc.pdf"},
+			input: []models.Job{
+				{Target: "doc.pdf", TargetAbsPath: "/usr/doc.pdf"},
+				{Target: "doc_1.pdf", TargetAbsPath: "/usr/doc_1.pdf"},
+				{Target: "doc.pdf", TargetAbsPath: "/usr/doc.pdf"},
 			},
-			expected: []Voit{
-				{target: "doc.pdf", targetAbsPath: "/usr/doc.pdf"},
-				{target: "doc_1.pdf", targetAbsPath: "/usr/doc_1.pdf"},
-				{target: "doc_2.pdf", targetAbsPath: "/usr/doc_2.pdf"},
+			expected: []models.Job{
+				{Target: "doc.pdf", TargetAbsPath: "/usr/doc.pdf"},
+				{Target: "doc_1.pdf", TargetAbsPath: "/usr/doc_1.pdf"},
+				{Target: "doc_2.pdf", TargetAbsPath: "/usr/doc_2.pdf"},
 			},
 		},
 	}

@@ -1,15 +1,17 @@
-package main
+package internal
 
 import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/r-pufky/voit/models"
 )
 
 func TestDisplayPending(t *testing.T) {
-	jobs := []Voit{
-		{source: "img1.jpg", target: "2023-01-01.jpg"},
-		{source: "a.jpg", target: "2023-01-02.jpg"},
+	jobs := []models.Job{
+		{Source: "img1.jpg", Target: "2023-01-01.jpg"},
+		{Source: "a.jpg", Target: "2023-01-02.jpg"},
 	}
 	buf := &bytes.Buffer{}
 
