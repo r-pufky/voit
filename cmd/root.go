@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/r-pufky/voit/internal"
 	"github.com/r-pufky/voit/models"
 	"github.com/spf13/cobra"
 )
@@ -18,10 +19,11 @@ func init() {
 	rootCmd.PersistentFlags().SortFlags = false
 
 	rootCmd.PersistentFlags().StringVarP(&opts.AbsSource, "source", "s", "", "Directory containing files or File to rename (default: current directory)")
-	rootCmd.PersistentFlags().StringVarP(&opts.TagSep, "tag-sep", "", " -- ", "Tag separator, automatically wrapped with spaces")
-	rootCmd.PersistentFlags().StringVarP(&opts.DescSep, "desc-sep", "", " - ", "Description separator, automatically wrapped with spaces")
-	rootCmd.PersistentFlags().BoolVarP(&opts.Verbose, "verbose", "v", false, "Show verbose information.")
-	rootCmd.PersistentFlags().BoolVarP(&opts.Yes, "yes", "y", false, "Automatically confirm operations.")
+	rootCmd.PersistentFlags().StringVarP(&opts.TagSep, "tag-sep", "", internal.DefaultTagsSep, "Tag separator")
+	rootCmd.PersistentFlags().StringVarP(&opts.DescSep, "desc-sep", "", internal.DefaultDescSep, "Description separator")
+	rootCmd.PersistentFlags().StringVarP(&opts.SpanSep, "span-sep", "", internal.DefaultSpanSep, "VTIME date span separator")
+	rootCmd.PersistentFlags().BoolVarP(&opts.Verbose, "verbose", "v", false, "Show verbose information")
+	rootCmd.PersistentFlags().BoolVarP(&opts.Yes, "yes", "y", false, "Automatically confirm operations")
 
 	rootCmd.Flags().BoolVarP(&opts.Build, "build", "b", false, "Show build version.")
 
@@ -32,6 +34,7 @@ var rootCmd = &cobra.Command{
 	Use:   "voit",
 	Short: "Voit file naming utility.",
 	Long: "Manage filenames using Karl Voit's Managing Digital Files scheme.\n\n" +
+		"  {VTIME} {DESC} -- {TAGS}.{EXT}\n\n" +
 		"Read about structure and PhD thesis:\n" +
 		"  https://karl-voit.at/folder-hierarchy\n" +
 		"  https://karl-voit.at/tagstore/en/papers.shtml\n\n" +

@@ -40,9 +40,10 @@ import (
 )
 
 const (
-	DefaultDescSep    = " - "       // Filename separator for description
+	DefaultDescSep    = " "         // Filename separator for description
 	DefaultTagsSep    = " -- "      // Filename separator for tags
-	WebkitEpochOffset = 11644473600 // Secs between Jan 1, 1601 and Jan 1, 1970.
+	DefaultSpanSep    = "--"        // Span separator for vtime
+	WebkitEpochOffset = 11644473600 // Secs between Jan 1, 1601 and Jan 1, 1970
 	MsPerSec          = 1000000
 )
 
@@ -50,9 +51,9 @@ const (
 //  1. File.Tags update with tags or []string{} if not found.
 //  2. File.Desc update with desc or all unmatched text from TAGS and VTIME.
 //  3. file.VTime update with parsed pattern/VTIME or time.Time{} if not found.
-//     If force enabled an existing VTIME will be overwritten with found
+//     If prefer enabled an existing VTIME will be overwritten with found
 //     pattern time when different.
-func Parse(file *models.File, pattern string, force bool, dSep string, tSep string) {
+func Parse(file *models.File, pattern string, prefer bool, dSep string, tSep string) {
 	if len(dSep) == 0 {
 		dSep = DefaultDescSep
 	}
@@ -63,20 +64,7 @@ func Parse(file *models.File, pattern string, force bool, dSep string, tSep stri
 	var pTime, vTime time.Time
 	var err error
 
-	// Chomp pattern date.
-	switch pattern {
-	case "created":
-		pTime = file.CTime
-	case "modified":
-		pTime = file.MTime
-	default:
-		pTime, err = extract(file.Name, pattern)
-		if err != nil {
-			pTime = time.Time{}
-		}
-	}
-
-	// Chomp Tags.
+	// Chomp Tags if exist.
 	tIdx := strings.LastIndex(file.Name, tSep)
 	if tIdx == -1 {
 		name = file.Name
@@ -86,22 +74,41 @@ func Parse(file *models.File, pattern string, force bool, dSep string, tSep stri
 		file.Tags = strings.Fields(strings.ToLower(file.Name[tIdx+len(tSep):]))
 	}
 
-	// Chomp VTime.
-	voit, desc, voitFound := strings.Cut(name, dSep)
-	if date, err := extract(voit, "voit"); err == nil {
+	// Parse pattern date.
+	switch pattern {
+	case "created":
+		pTime = file.CTime
+	case "modified":
+		pTime = file.MTime
+	default:
+		pTime, err = extract(name, pattern)
+		if err != nil {
+			pTime = time.Time{}
+		}
+	}
+
+	// Chomp Desc if exist.
+	dIdx := strings.Index(name, dSep)
+	if dIdx == -1 {
+		file.Desc = ""
+	} else {
+		name = file.Name[:dIdx]
+		if tIdx == -1 {
+			file.Desc = strings.TrimSpace(file.Name[dIdx+len(dSep):])
+		} else {
+			file.Desc = strings.TrimSpace(file.Name[dIdx+len(dSep) : tIdx])
+		}
+	}
+
+	// Remaining is either a pure vtime, or invalid desc / vtime + desc.
+	if date, err := extract(name, "voit"); err == nil {
 		vTime = date
 	} else {
 		vTime = time.Time{}
-	}
-
-	// Chomp Desc.
-	if voitFound {
-		file.Desc = strings.TrimSpace(desc)
-	} else {
 		file.Desc = strings.TrimSpace(name)
 	}
 
-	if force && !pTime.IsZero() {
+	if prefer && !pTime.IsZero() {
 		file.VTime = pTime
 	} else if !vTime.IsZero() {
 		file.VTime = vTime
@@ -150,13 +157,14 @@ func extract(name string, pattern string) (time.Time, error) {
 
 // Generate File.Target modifying no other attributes. Lower lowercases
 // extension and description. Strip removes matched pattern from description.
-func GenTargetName(file *models.File, pattern string, lower bool, strip bool, NoDesc bool, dSep string, tSep string) {
+func GenTargetName(file *models.File, pattern string, lower bool, strip bool, NoDesc bool, NoTags bool, dSep string, tSep string) {
 	source, err := filepath.Abs(filepath.Dir(file.Source))
 	if err != nil {
 		log.Fatalf("Failed to set absolute path: %v", err)
 	}
 	date := fmt.Sprintf("%s", file.VTime.Format("2006-01-02T15.04.05.000"))
 	desc := file.Desc
+	tags := strings.Join(file.Tags, " ")
 	ext := file.Ext
 
 	if lower {
@@ -172,9 +180,17 @@ func GenTargetName(file *models.File, pattern string, lower bool, strip bool, No
 		desc = strings.Join(slices.DeleteFunc(pieces, func(s string) bool { return s == "" }), "")
 	}
 
-	if NoDesc {
+	if !NoDesc && desc != "" {
+		desc = filepath.Join(dSep + desc)
+	} else {
 		desc = ""
 	}
 
-	file.Target = filepath.Join(source, date+dSep+desc+tSep+strings.Join(file.Tags, " ")+ext)
+	if !NoTags && len(file.Tags) != 0 {
+		tags = filepath.Join(tSep + tags)
+	} else {
+		tags = ""
+	}
+
+	file.Target = filepath.Join(source, date+desc+tags+ext)
 }

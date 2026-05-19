@@ -21,7 +21,7 @@ var (
 		Use:   "rename",
 		Short: "Rename files according to file name & attribute dates",
 		Long: "Rename files according to file name & attribute dates.\n\n" +
-			"  {DATE} - {DESC} -- {TAGS}.{EXT}\n\n" +
+			"  {VTIME} {DESC} -- {TAGS}.{EXT}\n\n" +
 			"Target files are automatically differentiated if there are name collisions.\n\n" +
 			"NOTE: Pattern flag is overridden if specified in config.",
 		Example: "  voit rename -s ./photos --photo-ms\n  voit rename -s image.jpg -l",
@@ -88,10 +88,11 @@ func init() {
 	renameCmd.MarkFlagsMutuallyExclusive(slices.Collect(maps.Keys(models.Patterns))...)
 
 	renameCmd.Flags().BoolVarP(&opts.Rename.Lower, "lower", "l", false, "Lowercase description and extension")
-	renameCmd.Flags().BoolVarP(&opts.Rename.Strip, "strip", "r", false, "Strip matched pattern for target file description")
-	renameCmd.Flags().BoolVarP(&opts.Rename.NoDesc, "no-desc", "n", false, "Remove description")
-	renameCmd.Flags().BoolVarP(&opts.Rename.Overwrite, "overwrite", "o", false, "Overwrite existing target files (DANGEROUS)")
-	renameCmd.Flags().BoolVarP(&opts.Rename.Force, "force", "f", false, "Use pattern date if both voit and pattern dates are found (default: use voit date if both exist)")
+	renameCmd.Flags().BoolVarP(&opts.Rename.Strip, "strip", "", false, "Strip matched pattern from description")
+	renameCmd.Flags().BoolVarP(&opts.Rename.NoDesc, "no-desc", "", false, "Remove description")
+	renameCmd.Flags().BoolVarP(&opts.Rename.NoDesc, "no-tags", "", false, "Remove tags")
+	renameCmd.Flags().BoolVarP(&opts.Rename.Overwrite, "overwrite", "", false, "Overwrite existing target files (DANGEROUS)")
+	renameCmd.Flags().BoolVarP(&opts.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both exist (default: use VTIME if both exist)")
 
 	viper.BindPFlags(rootCmd.Flags())
 }

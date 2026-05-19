@@ -28,6 +28,7 @@ import (
 	"regexp"
 )
 
+// TODO -- need to add duration for voit regex.
 var Patterns = map[string]*regexp.Regexp{
 	"photo-ms":      regexp.MustCompile(`(\d{4})(\d{2})(\d{2})\D(\d{2})(\d{2})(\d{2})(\d{3})`),                                    // YYYYMMDD░HHMMSSSSS
 	"signal-ms":     regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{3})`),                          // YYYY░MM░DD░HH░MM░SS░SSS
