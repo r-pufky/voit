@@ -23,9 +23,31 @@ func Rename(opts models.Opts) {
 		os.Exit(0)
 	}
 
+	collisions := make(map[string]int)
 	for i := range files {
 		Parse(&files[i], opts.Rename.Pattern, opts.Rename.PreferPattern, opts.DescSep, opts.TagSep, opts.SpanSep)
 		GenTargetName(&files[i], opts.Rename.Pattern, opts.Rename.Lower, opts.Rename.Strip, opts.Rename.NoDesc, opts.Rename.NoTags, opts.DescSep, opts.TagSep, opts.SpanSep)
+
+		if _, exists := collisions[files[i].Target]; !exists {
+			collisions[files[i].Target] = 1
+			continue // New target, move on to next file.
+		}
+
+		ext := filepath.Ext(files[i].Target)
+		base := strings.TrimSuffix(files[i].Target, ext)
+
+		for {
+			// Resolve collision with total count and verify new Target valid.
+			count := collisions[files[i].Target]
+			collisions[files[i].Target]++
+			newTarget := fmt.Sprintf("%s_%d%s", base, count, ext)
+
+			if _, collided := collisions[newTarget]; !collided {
+				files[i].Target = newTarget
+				collisions[newTarget] = 1
+				break
+			}
+		}
 	}
 
 	count := DisplayPending(os.Stdout, files)

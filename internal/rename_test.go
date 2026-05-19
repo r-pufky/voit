@@ -9,6 +9,7 @@ import (
 	"github.com/r-pufky/voit/models"
 )
 
+// TODO - update test case for automatic collision handling.
 func TestExecuteRename(t *testing.T) {
 	buf := &bytes.Buffer{}
 	tempDir := t.TempDir()
