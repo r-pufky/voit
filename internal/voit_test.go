@@ -15,21 +15,35 @@ var (
 	parsedTimeNoMS  = time.Date(2026, time.May, 17, 10, 45, 36, 0, time.UTC)
 	parsedTimeShort = time.Date(2026, time.May, 17, 10, 45, 0, 0, time.UTC)
 	voitTime        = time.Date(2026, time.February, 2, 12, 5, 20, 700000000, time.UTC)
+	voitTimeSpan    = time.Date(2027, time.June, 18, 11, 46, 37, 400000000, time.UTC)
 	baseTags        = []string{"summer", "vacation", "beach"}
 	baseDesc        = "beach vacation"
 )
 
+func containsString(str, substr string) bool {
+	return len(str) >= len(substr) && func() bool {
+		for i := 0; i <= len(str)-len(substr); i++ {
+			if str[i:i+len(substr)] == substr {
+				return true
+			}
+		}
+		return false
+	}()
+}
+
 func TestParse(t *testing.T) {
 	tests := []struct {
-		name      string
-		fName     string
-		pattern   string
-		prefer    bool
-		dSep      string
-		tSep      string
-		wantVTime time.Time
-		wantTags  []string
-		wantDesc  string
+		name          string
+		fName         string
+		pattern       string
+		prefer        bool
+		dSep          string
+		tSep          string
+		sSep          string
+		wantVTime     time.Time
+		wantVTimeSpan time.Time
+		wantTags      []string
+		wantDesc      string
 	}{
 		// Sanity checks.
 		{
@@ -38,16 +52,27 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  baseDesc,
 			wantTags:  baseTags,
 		},
 		{
-			name:    "sanity: sanitized format [desc:' ', tag:' - ']",
-			fName:   "2026-02-02T12.05.20.700 beach vacation - summer vacation beach",
-			pattern: "photo",
-			// dSep:      " ",
+			name:      "sanity: sanitized format [desc:' ', tag:' - ']",
+			fName:     "2026-02-02T12.05.20.700 beach vacation - summer vacation beach",
+			pattern:   "photo",
 			tSep:      " - ",
+			sSep:      "--",
+			wantVTime: voitTime,
+			wantDesc:  baseDesc,
+			wantTags:  baseTags,
+		},
+		{
+			name:      "sanity: sanitized format [voit-span]",
+			fName:     "2026-02-02T12.05.20.700 beach vacation - summer vacation beach",
+			pattern:   "photo",
+			tSep:      " - ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  baseDesc,
 			wantTags:  baseTags,
@@ -58,6 +83,7 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: time.Time{},
 			wantDesc:  "not-a-date-file",
 			wantTags:  []string{},
@@ -69,6 +95,7 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  baseDesc,
 			wantTags:  baseTags,
@@ -79,6 +106,7 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  baseDesc,
 			wantTags:  []string{"nested_tag_summer", "vacation", "beach"},
@@ -89,6 +117,7 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  baseDesc,
 			wantTags:  []string{},
@@ -99,6 +128,7 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  "beach vacation --",
 			wantTags:  []string{},
@@ -109,6 +139,7 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  "beach vacation",
 			wantTags:  []string{},
@@ -120,16 +151,17 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  "2026-05-02T17.10.45.000 beach vacation",
 			wantTags:  baseTags,
 		},
 		{
-			name:    "vtime: non matched pattern [desc:' ', tag:' - ']",
-			fName:   "2026-02-02T12.05.20.700 2026-05-02T17.10.45.000 beach vacation - summer vacation beach",
-			pattern: "photo",
-			// dSep:      " ",
+			name:      "vtime: non matched pattern [desc:' ', tag:' - ']",
+			fName:     "2026-02-02T12.05.20.700 2026-05-02T17.10.45.000 beach vacation - summer vacation beach",
+			pattern:   "photo",
 			tSep:      " - ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  "2026-05-02T17.10.45.000 beach vacation",
 			wantTags:  baseTags,
@@ -140,6 +172,7 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: time.Time{}, // No separator will move voit to description and not parse.
 			wantDesc:  "2026-02-02T12.05.20.700 2026-05-02T17.10.45.000 beach vacation",
 			wantTags:  baseTags,
@@ -151,6 +184,7 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  baseDesc,
 			wantTags:  []string{},
@@ -161,16 +195,19 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  "",
 			wantTags:  baseTags,
 		},
+		// TODO - tests which return default time; should be marked as UNMODIFIED and not changed as no date found?
 		{
 			name:      "desc: missing description [desc: '', separators overlap]",
 			fName:     "2026-02-02T12.05.20.700 - -- summer vacation beach",
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: time.Time{}, // No separator found tags chomped extra space.
 			wantDesc:  "2026-02-02T12.05.20.700 -",
 			wantTags:  baseTags,
@@ -181,6 +218,7 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: time.Time{}, // No separator assumes non-tags are description.
 			wantDesc:  "2026-02-02T12.05.20.700 beach vacation",
 			wantTags:  baseTags,
@@ -191,6 +229,7 @@ func TestParse(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  "",
 			wantTags:  baseTags,
@@ -202,6 +241,7 @@ func TestParse(t *testing.T) {
 			pattern:   "created",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: fixedCTime,
 			wantDesc:  baseDesc,
 			wantTags:  baseTags,
@@ -212,6 +252,7 @@ func TestParse(t *testing.T) {
 			pattern:   "created",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  baseDesc,
 			wantTags:  baseTags,
@@ -223,6 +264,7 @@ func TestParse(t *testing.T) {
 			prefer:    true,
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: fixedCTime,
 			wantDesc:  baseDesc,
 			wantTags:  baseTags,
@@ -233,6 +275,7 @@ func TestParse(t *testing.T) {
 			pattern:   "modified",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: fixedMTime,
 			wantDesc:  baseDesc,
 			wantTags:  baseTags,
@@ -243,6 +286,7 @@ func TestParse(t *testing.T) {
 			pattern:   "modified",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: voitTime,
 			wantDesc:  baseDesc,
 			wantTags:  baseTags,
@@ -254,6 +298,7 @@ func TestParse(t *testing.T) {
 			prefer:    true,
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantVTime: fixedMTime,
 			wantDesc:  baseDesc,
 			wantTags:  baseTags,
@@ -349,7 +394,7 @@ func TestParse(t *testing.T) {
 				MTime: fixedMTime,
 			}
 
-			Parse(file, tt.pattern, tt.prefer, tt.dSep, tt.tSep)
+			Parse(file, tt.pattern, tt.prefer, tt.dSep, tt.tSep, tt.sSep)
 
 			if !file.VTime.Equal(tt.wantVTime) {
 				t.Errorf("\nVTime:     %v\nwantVTime: %v", file.VTime, tt.wantVTime)
@@ -386,28 +431,25 @@ func TestExtract(t *testing.T) {
 			pattern:     "photo",
 			wantTime:    time.Time{},
 			wantErr:     true,
-			errContains: "No date pattern matched file",
+			errContains: "No date pattern matched",
 		},
 		{
 			name:     "webkit-chrome match",
 			file:     "13253932800000000.dat",
 			pattern:  "webkit-chrome",
 			wantTime: time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC),
-			wantErr:  false,
 		},
 		{
 			name:     "full pattern parse extraction",
 			file:     "20260517_112356123.jpg",
 			pattern:  "photo-ms",
 			wantTime: time.Date(2026, time.May, 17, 11, 23, 56, 123*int(time.Millisecond), time.UTC),
-			wantErr:  false,
 		},
 		{
 			name:     "partial pattern extraction",
 			file:     "2026-05-17",
 			pattern:  "voit",
 			wantTime: time.Date(2026, time.May, 17, 0, 0, 0, 0, time.UTC),
-			wantErr:  false,
 		},
 		{
 			name:        "no match",
@@ -415,7 +457,7 @@ func TestExtract(t *testing.T) {
 			pattern:     "created",
 			wantTime:    time.Time{},
 			wantErr:     true,
-			errContains: "No date pattern matched file",
+			errContains: "No date pattern matched",
 		},
 	}
 
@@ -441,15 +483,123 @@ func TestExtract(t *testing.T) {
 	}
 }
 
-func containsString(str, substr string) bool {
-	return len(str) >= len(substr) && func() bool {
-		for i := 0; i <= len(str)-len(substr); i++ {
-			if str[i:i+len(substr)] == substr {
-				return true
+func TestVTimeSpan(t *testing.T) {
+	// Regex tested in models. VTimeSpan handles only VTIME strings.
+
+	tests := []struct {
+		name        string
+		file        string
+		pattern     string
+		sSep        string
+		wantTime    time.Time
+		wantSpan    time.Time
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:     "standard match",
+			file:     "2026-02-02T12.05.20.700--2027-06-18T11.46.37.400",
+			pattern:  "voit-span",
+			sSep:     "--",
+			wantTime: voitTime,
+			wantSpan: voitTimeSpan,
+		},
+		{
+			name:        "no match [missing end date]",
+			file:        "2026-02-02T12.05.20.700--",
+			pattern:     "voit-span",
+			sSep:        "--",
+			wantTime:    voitTime,
+			wantSpan:    time.Time{},
+			wantErr:     true,
+			errContains: "No date span matched end:",
+		},
+		{
+			name:        "no match [missing start date]",
+			file:        "--2027-06-18T11.46.37.400",
+			pattern:     "voit-span",
+			sSep:        "--",
+			wantTime:    time.Time{},
+			wantSpan:    time.Time{},
+			wantErr:     true,
+			errContains: "No date span matched start:",
+		},
+		{
+			name:        "no match [bad separator]",
+			file:        "2026-02-02T12.05.20.700-2027-06-18T11.46.37.400",
+			pattern:     "voit-span",
+			sSep:        "--",
+			wantTime:    voitTime,
+			wantSpan:    time.Time{},
+			wantErr:     true,
+			errContains: "No date span matched:",
+		},
+		{
+			name:        "no match",
+			file:        "not-a-date-file.txt",
+			pattern:     "voit-span",
+			sSep:        "--",
+			wantTime:    time.Time{},
+			wantErr:     true,
+			errContains: "No date span matched:",
+		},
+		{
+			name:     "match [short start date]",
+			file:     "2026-02-02--2027-06-18T11.46.37.400",
+			pattern:  "voit-span",
+			sSep:     "--",
+			wantTime: time.Date(2026, time.February, 2, 0, 0, 0, 0, time.UTC),
+			wantSpan: voitTimeSpan,
+		},
+		{
+			name:     "match [short end date]",
+			file:     "2026-02-02T12.05.20.700--2027-06-18",
+			pattern:  "voit-span",
+			sSep:     "--",
+			wantTime: voitTime,
+			wantSpan: time.Date(2027, time.June, 18, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:     "match [short dates]",
+			file:     "2026-02-02--2027-06-18",
+			pattern:  "voit-span",
+			sSep:     "--",
+			wantTime: time.Date(2026, time.February, 2, 0, 0, 0, 0, time.UTC),
+			wantSpan: time.Date(2027, time.June, 18, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:     "match [short partial dates]",
+			file:     "2026-02-02T10.45--2027-06-18T11.46",
+			pattern:  "voit-span",
+			sSep:     "--",
+			wantTime: time.Date(2026, time.February, 2, 10, 45, 0, 0, time.UTC),
+			wantSpan: time.Date(2027, time.June, 18, 11, 46, 0, 0, time.UTC),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotTime, gotSpan, err := VTimeSpan(tt.file, tt.pattern, tt.sSep)
+
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("\nError:   %v\nwantErr: %v", err, tt.wantErr)
 			}
-		}
-		return false
-	}()
+
+			if err != nil && tt.errContains != "" {
+				if !containsString(err.Error(), tt.errContains) {
+					t.Errorf("\nString: %q\nDoes not contain expected substring: %q", err.Error(), tt.errContains)
+				}
+				return
+			}
+
+			if !gotTime.Equal(tt.wantTime) {
+				t.Errorf("\ngotTime:  %v\nwantTime: %v", gotTime, tt.wantTime)
+			}
+			if !gotSpan.Equal(tt.wantSpan) {
+				t.Errorf("\ngotSpan:  %v\nwantSpan: %v", gotSpan, tt.wantSpan)
+			}
+		})
+	}
 }
 
 func TestGenTargetName(t *testing.T) {
@@ -463,6 +613,7 @@ func TestGenTargetName(t *testing.T) {
 		noTags    bool
 		dSep      string
 		tSep      string
+		sSep      string
 		wantName  string
 		wantMatch bool
 	}{
@@ -479,6 +630,7 @@ func TestGenTargetName(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantName:  "/tmp/2026-05-17T10.45.36.300 - beach vacation -- summer vacation beach.jpg",
 			wantMatch: true,
 		},
@@ -494,8 +646,25 @@ func TestGenTargetName(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " ",
 			tSep:      " - ",
+			sSep:      "--",
 			wantName:  "/tmp/2026-05-17T10.45.36.300 beach vacation - summer vacation beach.jpg",
 			wantMatch: true,
+		},
+		{
+			name: "sanity: no VTime set",
+			file: &models.File{
+				Source: "/tmp/beach vacation - summer vacation beach.jpg",
+				VTime:  time.Time{},
+				Desc:   baseDesc,
+				Ext:    ".jpg",
+				Tags:   baseTags,
+			},
+			pattern:   "photo",
+			dSep:      " ",
+			tSep:      " - ",
+			sSep:      "--",
+			wantName:  "/tmp/0001-01-01T00.00.00.000 beach vacation - summer vacation beach.jpg",
+			wantMatch: false, // Filename uses zero time, but not marked as matched.
 		},
 		// TODO - add these test cases in for parsing tags, desc, vtime.
 		{
@@ -510,6 +679,7 @@ func TestGenTargetName(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantName:  "/tmp/2026-05-17T10.45.36.300 - not-a-date-file.jpg",
 			wantMatch: false,
 		},
@@ -525,6 +695,7 @@ func TestGenTargetName(t *testing.T) {
 			pattern:   "photo-ms",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantName:  "/tmp/2026-05-17T10.45.36.300 - PXL_20260517_104536300.jpg",
 			wantMatch: true,
 		},
@@ -542,6 +713,7 @@ func TestGenTargetName(t *testing.T) {
 			lower:     true,
 			dSep:      " ",
 			tSep:      " - ",
+			sSep:      "--",
 			wantName:  "/tmp/2026-05-17T10.45.36.300 beach vacation - summer vacation beach.jpg",
 			wantMatch: true,
 		},
@@ -559,6 +731,7 @@ func TestGenTargetName(t *testing.T) {
 			strip:     true,
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantName:  "/tmp/2026-05-17T10.45.36.300 - PXL_.jpg",
 			wantMatch: true,
 		},
@@ -575,6 +748,7 @@ func TestGenTargetName(t *testing.T) {
 			strip:     true,
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantName:  "/tmp/2026-05-17T10.45.36.300 - PXL_~1.jpg",
 			wantMatch: true,
 		},
@@ -591,6 +765,7 @@ func TestGenTargetName(t *testing.T) {
 			strip:     true,
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantName:  "/tmp/2026-05-17T10.45.36.300 - PXL_20260517_104536300.jpg",
 			wantMatch: false,
 		},
@@ -608,6 +783,7 @@ func TestGenTargetName(t *testing.T) {
 			strip:     true,
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantName:  "/tmp/2026-05-17T10.45.36.300 - pxl_~1.jpg",
 			wantMatch: true,
 		},
@@ -624,6 +800,7 @@ func TestGenTargetName(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			noTags:    true,
 			wantName:  "/tmp/2026-05-17T10.45.36.300 - beach vacation.jpg",
 			wantMatch: true,
@@ -641,6 +818,7 @@ func TestGenTargetName(t *testing.T) {
 			pattern:   "photo",
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			noDesc:    true,
 			wantName:  "/tmp/2026-05-17T10.45.36.300 -- summer vacation beach.jpg",
 			wantMatch: true,
@@ -662,14 +840,52 @@ func TestGenTargetName(t *testing.T) {
 			noTags:    true,
 			dSep:      " - ",
 			tSep:      " -- ",
+			sSep:      "--",
 			wantName:  "/tmp/2026-05-17T10.45.36.300.jpg",
+			wantMatch: true,
+		},
+		// VTimeSpan.
+		{
+			name: "vtimespan: sanitized format",
+			file: &models.File{
+				Source:    "/tmp/2026-02-02T12.05.20.700--2027-06-18T11.46.37.400 - beach vacation -- summer vacation beach.jpg",
+				VTime:     voitTime,
+				VTimeSpan: voitTimeSpan,
+				Desc:      baseDesc,
+				Ext:       ".jpg",
+				Tags:      baseTags,
+			},
+			pattern:   "photo",
+			dSep:      " - ",
+			tSep:      " -- ",
+			sSep:      "--",
+			noTags:    true,
+			wantName:  "/tmp/2026-02-02T12.05.20.700--2027-06-18T11.46.37.400 - beach vacation.jpg",
+			wantMatch: true,
+		},
+		{
+			name: "vtimespan: sanitized format",
+			file: &models.File{
+				Source:    "/tmp/2026-02-02T12.05.20.700--2027-06-18T11.46.37.400 - beach vacation -- summer vacation beach.jpg",
+				VTime:     voitTime,
+				VTimeSpan: voitTimeSpan,
+				Desc:      baseDesc,
+				Ext:       ".jpg",
+				Tags:      baseTags,
+			},
+			pattern:   "photo",
+			dSep:      " - ",
+			tSep:      " -- ",
+			sSep:      "--",
+			noTags:    true,
+			wantName:  "/tmp/2026-02-02T12.05.20.700--2027-06-18T11.46.37.400 - beach vacation.jpg",
 			wantMatch: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			GenTargetName(tt.file, tt.pattern, tt.lower, tt.strip, tt.noDesc, tt.noTags, tt.dSep, tt.tSep)
+			GenTargetName(tt.file, tt.pattern, tt.lower, tt.strip, tt.noDesc, tt.noTags, tt.dSep, tt.tSep, tt.sSep)
 
 			if tt.file.Target != tt.wantName {
 				t.Errorf("\nGot:  %s\nWant: %s", tt.file.Target, tt.wantName)

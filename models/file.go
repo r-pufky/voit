@@ -12,6 +12,7 @@ where
   But any sub-section of this format is acceptable.
 
   . is used instead of : for OSX and mounted FS support.
+	{VTIME}--{VTIME}: date span.
 * ' - ': Description separator. Can be empty.
 * DESCRIPTION: Context for file with no case restrictions.
 * ' -- ': Tag separator. Reequired if tags are present.
@@ -41,15 +42,16 @@ var MultiExts = []string{
 }
 
 type File struct {
-	CTime   time.Time // Source create time (UTC)
-	MTime   time.Time // Source modified time (UTC)
-	VTime   time.Time // {VTIME} datetime
-	Tags    []string  // {TAGS} already lowercased
-	Desc    string    // {DESCRIPTION}.
-	Source  string    // Source absolute path to file: /path/file.ext
-	Name    string    // Source original file name: file
-	Ext     string    // Source file extension: .ext
-	Target  string    // Target absolute path to rename: /path/file.ext
-	Width   uint8     // Source file width (Linux max 255 characters)
-	Matched bool      // File matched for potentia rename operation
+	CTime     time.Time // Source create time (UTC)
+	MTime     time.Time // Source modified time (UTC)
+	VTime     time.Time // {VTIME} datetime
+	VTimeSpan time.Time // {VTIME} datetime span end
+	Tags      []string  // {TAGS} already lowercased
+	Desc      string    // {DESCRIPTION}.
+	Source    string    // Source absolute path to file: /path/file.ext
+	Name      string    // Source original file name: file
+	Ext       string    // Source file extension: .ext
+	Target    string    // Target absolute path to rename: /path/file.ext
+	Width     uint8     // Source file width (Linux max 255 characters)
+	Matched   bool      // File matched for potentia rename operation
 }

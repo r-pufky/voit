@@ -28,7 +28,6 @@ import (
 	"regexp"
 )
 
-// TODO -- need to add duration for voit regex.
 var Patterns = map[string]*regexp.Regexp{
 	"photo-ms":      regexp.MustCompile(`(\d{4})(\d{2})(\d{2})\D(\d{2})(\d{2})(\d{2})(\d{3})`),                                    // YYYYMMDD░HHMMSSSSS
 	"signal-ms":     regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{3})`),                          // YYYY░MM░DD░HH░MM░SS░SSS
@@ -40,6 +39,7 @@ var Patterns = map[string]*regexp.Regexp{
 	"8601":          regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})(\d{2})(\d{2})`),                                       // YYYY░MM░DD░HHMMSS
 	"8601-ms":       regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})(\d{2})(\d{2})(\d{3})`),                                // YYYY░MM░DD░HHMMSSSSS
 	"voit":          regexp.MustCompile(`^\s*(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})(?:\.(\d{2})(?:\.(\d{2})(?:\.(\d{3}))?)?)?)?\s*$`), // Voit 8601
+	"voit-span":     regexp.MustCompile(`^\s*(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})(?:\.(\d{2})(?:\.(\d{2})(?:\.(\d{3}))?)?)?)?\s*$`), // Voit 8601 date span (span captured in extract)
 	"webkit-chrome": regexp.MustCompile(`(\d{17})`),                                                                               // SSSSSSSSSSSSSSSSS (https://www.epochconverter.com/webkit)
 	"created":       regexp.MustCompile(`[^\s\S]`),                                                                                // Never match
 	"modified":      regexp.MustCompile(`[^\s\S]`),                                                                                // Never match

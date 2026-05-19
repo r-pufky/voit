@@ -53,12 +53,15 @@ const (
 //  3. file.VTime update with parsed pattern/VTIME or time.Time{} if not found.
 //     If prefer enabled an existing VTIME will be overwritten with found
 //     pattern time when different.
-func Parse(file *models.File, pattern string, prefer bool, dSep string, tSep string) {
+func Parse(file *models.File, pattern string, prefer bool, dSep string, tSep string, sSep string) {
 	if len(dSep) == 0 {
 		dSep = DefaultDescSep
 	}
 	if len(tSep) == 0 {
 		tSep = DefaultTagsSep
+	}
+	if len(sSep) == 0 {
+		sSep = DefaultSpanSep
 	}
 	var name string
 	var pTime, vTime time.Time
@@ -100,12 +103,23 @@ func Parse(file *models.File, pattern string, prefer bool, dSep string, tSep str
 		}
 	}
 
-	// Remaining is either a pure vtime, or invalid desc / vtime + desc.
-	if date, err := extract(name, "voit"); err == nil {
-		vTime = date
+	// Remaining is either a vtime span, vtime, or invalid desc/vtime+desc.
+	if pattern == "voit-span" {
+		if vTime, vSpan, err := VTimeSpan(name, pattern, sSep); err == nil {
+			file.VTime = vTime
+			file.VTimeSpan = vSpan
+		} else {
+			vTime = time.Time{}
+			file.VTimeSpan = time.Time{}
+			file.Desc = strings.TrimSpace(name)
+		}
 	} else {
-		vTime = time.Time{}
-		file.Desc = strings.TrimSpace(name)
+		if date, err := extract(name, "voit"); err == nil {
+			vTime = date
+		} else {
+			vTime = time.Time{}
+			file.Desc = strings.TrimSpace(name)
+		}
 	}
 
 	if prefer && !pTime.IsZero() {
@@ -121,7 +135,7 @@ func Parse(file *models.File, pattern string, prefer bool, dSep string, tSep str
 func extract(name string, pattern string) (time.Time, error) {
 	match := models.Patterns[pattern].FindStringSubmatch(name)
 	if match == nil {
-		return time.Time{}, fmt.Errorf("No date pattern matched file: %s", name)
+		return time.Time{}, fmt.Errorf("No date pattern matched: %s", name)
 	}
 
 	// 0 - full match, 1..N - Regex match groups. Unmatched groups ("") and out
@@ -155,9 +169,34 @@ func extract(name string, pattern string) (time.Time, error) {
 	), nil
 }
 
+// Extract time span from given string and filter.
+func VTimeSpan(name string, pattern string, sSep string) (time.Time, time.Time, error) {
+	var vTime, vSpan time.Time
+	var err error
+
+	start, end, found := strings.Cut(name, sSep)
+
+	fmt.Printf("\ns: %q\ne: %q", start, end)
+	if !found {
+		return time.Time{}, time.Time{}, fmt.Errorf("No date span matched: %s", name)
+	}
+
+	if vTime, err = extract(start, pattern); err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("No date span matched start: %s", name)
+	}
+
+	if vSpan, err = extract(end, pattern); err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("No date span matched end: %s", name)
+	}
+
+	return vTime, vSpan, nil
+}
+
 // Generate File.Target modifying no other attributes. Lower lowercases
 // extension and description. Strip removes matched pattern from description.
-func GenTargetName(file *models.File, pattern string, lower bool, strip bool, NoDesc bool, NoTags bool, dSep string, tSep string) {
+// Files are only set to Matched if pattern string is found, and VTime is not
+// Zero.
+func GenTargetName(file *models.File, pattern string, lower bool, strip bool, NoDesc bool, NoTags bool, dSep string, tSep string, sSep string) {
 	source, err := filepath.Abs(filepath.Dir(file.Source))
 	if err != nil {
 		log.Fatalf("Failed to set absolute path: %v", err)
@@ -167,12 +206,19 @@ func GenTargetName(file *models.File, pattern string, lower bool, strip bool, No
 	tags := strings.Join(file.Tags, " ")
 	ext := file.Ext
 
+	if !file.VTimeSpan.IsZero() {
+		date = fmt.Sprintf("%s%s%s", file.VTime.Format("2006-01-02T15.04.05.000"), sSep, file.VTimeSpan.Format("2006-01-02T15.04.05.000"))
+	}
+
 	if lower {
 		desc = strings.ToLower(desc)
 		ext = strings.ToLower(ext)
 	}
 
-	file.Matched = models.Patterns[pattern].MatchString(desc)
+	// TODO - test this with zero time, matched explicitly. see existing tests.
+	if !file.VTime.IsZero() && models.Patterns[pattern].MatchString(desc) {
+		file.Matched = true
+	}
 
 	if strip && file.Matched {
 		// Return all non-regex matched strings, removing empty strings, and join them.

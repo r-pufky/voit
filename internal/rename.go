@@ -24,8 +24,8 @@ func Rename(opts models.Opts) {
 	}
 
 	for i := range files {
-		Parse(&files[i], opts.Rename.Pattern, opts.Rename.PreferPattern, opts.DescSep, opts.TagSep)
-		GenTargetName(&files[i], opts.Rename.Pattern, opts.Rename.Lower, opts.Rename.Strip, opts.Rename.NoDesc, opts.Rename.NoTags, opts.DescSep, opts.TagSep)
+		Parse(&files[i], opts.Rename.Pattern, opts.Rename.PreferPattern, opts.DescSep, opts.TagSep, opts.SpanSep)
+		GenTargetName(&files[i], opts.Rename.Pattern, opts.Rename.Lower, opts.Rename.Strip, opts.Rename.NoDesc, opts.Rename.NoTags, opts.DescSep, opts.TagSep, opts.SpanSep)
 	}
 
 	count := DisplayPending(os.Stdout, files)

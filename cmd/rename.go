@@ -83,6 +83,7 @@ func init() {
 	renameCmd.Flags().Bool("8601-naked", false, "YYYYMMDDHHMMSS          │ Naked 8601")
 	renameCmd.Flags().Bool("webkit-chrome", false, "SSSSSSSSSSSSSSSSS       │ Chrome Webkit Epoch")
 	renameCmd.Flags().Bool("voit", false, "YYYY-MM-DDTHH.MM.SS.SSS │ Voit Scheme")
+	renameCmd.Flags().Bool("voit-span", false, "{VOIT}--{VOIT}          │ Voit Scheme date span")
 	renameCmd.Flags().Bool("created", false, "[ctime]                 │ Use file creation date")
 	renameCmd.Flags().Bool("modified", false, "[modtime]               │ Use file modification date")
 	renameCmd.MarkFlagsMutuallyExclusive(slices.Collect(maps.Keys(models.Patterns))...)
