@@ -9,23 +9,27 @@ import (
 )
 
 func TestDisplayPending(t *testing.T) {
-	jobs := []models.Job{
-		{Source: "img1.jpg", Target: "2023-01-01.jpg"},
-		{Source: "a.jpg", Target: "2023-01-02.jpg"},
+	files := []models.File{
+		{Source: "img1.jpg", Matched: true, Width: 8, Target: "2023-01-01.jpg"},
+		{Source: "a.jpg", Matched: true, Width: 5, Target: "2023-01-02.jpg"},
 	}
+
 	buf := &bytes.Buffer{}
 
-	DisplayPending(buf, jobs, 8)
+	count := DisplayPending(buf, files)
 
 	out := buf.String()
 	expected1 := "img1.jpg ➔ 2023-01-01.jpg"
 	expected2 := "a.jpg    ➔ 2023-01-02.jpg"
 
 	if !strings.Contains(out, expected1) {
-		t.Errorf("Expected output to contain %q", expected1)
+		t.Errorf("\nOutput:\n%s\nExpected to contain: %q", out, expected1)
 	}
 	if !strings.Contains(out, expected2) {
-		t.Errorf("Expected output to contain %q (check padding)", expected2)
+		t.Errorf("\nOutput:\n%s\nExpected to contain: %q", out, expected2)
+	}
+	if count != 2 {
+		t.Errorf("\nExpected count 2: %d", count)
 	}
 }
 

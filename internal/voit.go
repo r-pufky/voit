@@ -1,161 +1,180 @@
-// Parse filename to Voit standard using provided regex patterns.
-//
-// Always parse full year, and assume time format is correctly zero padded when
-// no separators are used. Valid separator is any non-numeric character.
-//
-// https://karl-voit.at/folder-hierarchy
+/*
+Parse string file names and extract Voit naming scheme.
+
+{DATE} [DESSEP] {DESCRIPTION} [TAGSEP] {TAGS}.{EXT}
+
+dessep: Description separator. May be Empty. Default: ' - '.
+tagsep: Tag separator. Default: ' -- '.
+
+date: File creation or retrieval date (any date most relevant context). Full
+
+	8601 format preferred:
+
+	HHHH-MM-DDTHH.MM.SS.SSS
+
+	Any sub-section of this format is acceptable.
+
+	. is used instead of : for OSX and mounted FS support.
+
+context: context for file (description); no case restrictions.
+tags: Tags; lowercase, space separated.
+
+2024-05-17T14.31.23.342 - artichoke production -- research paper.pdf
+2026-01-03 - some funny picture I found.jpg
+2026-03-04T13.20 - some installer.tar.gz
+
+https://karl-voit.at/folder-hierarchy
+*/
 package internal
 
 import (
 	"fmt"
-	"os"
+	"log"
 	"path/filepath"
-	"regexp"
-	"runtime"
+	"slices"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
+
+	"github.com/r-pufky/voit/models"
 )
 
 const (
-	webkitEpochOffset = 11644473600 // Secs between Jan 1, 1601 and Jan 1, 1970.
-	msPerSec          = 1000000
+	DefaultDescSep    = " - "       // Filename separator for description
+	DefaultTagsSep    = " -- "      // Filename separator for tags
+	WebkitEpochOffset = 11644473600 // Secs between Jan 1, 1601 and Jan 1, 1970.
+	MsPerSec          = 1000000
 )
 
-var patterns = map[string]*regexp.Regexp{
-	// ms - YYYYMMDD_HHMMSSSSS.
-	"ms": regexp.MustCompile(`(\d{4})(\d{2})(\d{2})\D(\d{2})(\d{2})(\d{2})(\d{3})`),
-	// mns - YYYY-MM-DD-HH-MM-SS-SSS.
-	"mns": regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{3})`),
-	// mfs - YYYYMMDDHHMMSSSSS.
-	"mfs": regexp.MustCompile(`(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{3})`),
-	// s - YYYYMMDD_HHMMSS.
-	"s": regexp.MustCompile(`(\d{4})(\d{2})(\d{2})\D(\d{2})(\d{2})(\d{2})`),
-	// ns - YYYY-MM-DD-HH-MM-SS.
-	"ns": regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})\D(\d{2})`),
-	// fs - YYYYMMDDHHMMSS.
-	"fs": regexp.MustCompile(`(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})`),
-	// hsfs - YYYY-MM-DD-HHMM
-	"hsfs": regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})(\d{2})`),
-	// hfs - YYYY-MM-DD-HHMMSS
-	"hfs": regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})(\d{2})(\d{2})`),
-	// hmfs - YYYY-MM-DD-HHMMSSSSS
-	"hmfs": regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})(\d{2})(\d{2})(\d{3})`),
-	// v - YYYY-MM-DDTHH.MM.SS.SSS.
-	"v": regexp.MustCompile(`(\d{4})-(\d{2})-(\d{2})T(\d{2})\.(\d{2})\.(\d{2})\.(\d{3})`),
-	// w - SSSSSSSSSSSSSSSSS (https://www.epochconverter.com/webkit).
-	"w": regexp.MustCompile(`(\d{17})`),
+// Parse voit struct from name.
+//  1. File.Tags update with tags or []string{} if not found.
+//  2. File.Desc update with desc or all unmatched text from TAGS and VTIME.
+//  3. file.VTime update with parsed pattern/VTIME or time.Time{} if not found.
+//     If force enabled an existing VTIME will be overwritten with found
+//     pattern time when different.
+func Parse(file *models.File, pattern string, force bool, dSep string, tSep string) {
+	if len(dSep) == 0 {
+		dSep = DefaultDescSep
+	}
+	if len(tSep) == 0 {
+		tSep = DefaultTagsSep
+	}
+	var name string
+	var pTime, vTime time.Time
+	var err error
+
+	// Chomp pattern date.
+	switch pattern {
+	case "created":
+		pTime = file.CTime
+	case "modified":
+		pTime = file.MTime
+	default:
+		pTime, err = extract(file.Name, pattern)
+		if err != nil {
+			pTime = time.Time{}
+		}
+	}
+
+	// Chomp Tags.
+	tIdx := strings.LastIndex(file.Name, tSep)
+	if tIdx == -1 {
+		name = file.Name
+		file.Tags = []string{}
+	} else {
+		name = file.Name[:tIdx]
+		file.Tags = strings.Fields(strings.ToLower(file.Name[tIdx+len(tSep):]))
+	}
+
+	// Chomp VTime.
+	voit, desc, voitFound := strings.Cut(name, dSep)
+	if date, err := extract(voit, "voit"); err == nil {
+		vTime = date
+	} else {
+		vTime = time.Time{}
+	}
+
+	// Chomp Desc.
+	if voitFound {
+		file.Desc = strings.TrimSpace(desc)
+	} else {
+		file.Desc = strings.TrimSpace(name)
+	}
+
+	if force && !pTime.IsZero() {
+		file.VTime = pTime
+	} else if !vTime.IsZero() {
+		file.VTime = vTime
+	} else {
+		file.VTime = pTime
+	}
 }
 
-// Parse time object from given file name and filter.
-func parseFile(file string, pattern string) (time.Time, error) {
-	match := patterns[pattern].FindStringSubmatch(file)
-	if len(match) >= 7 {
-		year, _ := strconv.Atoi(match[1])
-		month, _ := strconv.Atoi(match[2])
-		day, _ := strconv.Atoi(match[3])
-		hour, _ := strconv.Atoi(match[4])
-		min, _ := strconv.Atoi(match[5])
-		sec, _ := strconv.Atoi(match[6])
+// Extract time object from given string and filter.
+func extract(name string, pattern string) (time.Time, error) {
+	match := models.Patterns[pattern].FindStringSubmatch(name)
+	if match == nil {
+		return time.Time{}, fmt.Errorf("No date pattern matched file: %s", name)
+	}
 
-		ms := 0
-		if len(match) > 7 && match[7] != "" {
-			ms, _ = strconv.Atoi(match[7])
+	// 0 - full match, 1..N - Regex match groups. Unmatched groups ("") and out
+	// of bounds matches are set to 0.
+	group := func(i int) int {
+		if match == nil || i >= len(match) {
+			return 0
 		}
-
-		return time.Date(year, time.Month(month), day, hour, min, sec, ms*int(time.Millisecond), time.UTC), nil
+		val, _ := strconv.Atoi(match[i])
+		return val
 	}
 
-	if len(match) == 6 {
-		year, _ := strconv.Atoi(match[1])
-		month, _ := strconv.Atoi(match[2])
-		day, _ := strconv.Atoi(match[3])
-		hour, _ := strconv.Atoi(match[4])
-		min, _ := strconv.Atoi(match[5])
-
-		return time.Date(year, time.Month(month), day, hour, min, 0, 0, time.UTC), nil
-	}
-
-	if len(match) == 2 {
+	if pattern == "webkit-chrome" {
 		ms, err := strconv.ParseInt(match[1], 10, 64)
 		if err != nil {
-			return time.Time{}, fmt.Errorf("Invalid Webkit format: %s", file)
+			return time.Time{}, fmt.Errorf("Invalid Webkit format: %s", name)
 		}
-		sec := (ms / msPerSec) - webkitEpochOffset
-		date := time.Unix(sec, (ms%msPerSec)*1000).UTC()
-
-		return time.Date(
-			date.Year(),
-			date.Month(),
-			date.Day(),
-			date.Hour(),
-			date.Minute(),
-			date.Second(),
-			date.Nanosecond(),
-			time.UTC,
-		), nil
-	}
-
-	return time.Time{}, fmt.Errorf("No date pattern matched file: %s", file)
-}
-
-// Parse file creation or modification time.
-// Fallback to modified time if underlying FS does not support creation time.
-func parseFileTime(file string, created bool, modified bool) (time.Time, error) {
-	info, err := os.Stat(file)
-	if err != nil || (!created && !modified) {
-		return time.Time{}, err
-	}
-	cTime := info.ModTime().UTC()
-
-	if created {
-		switch runtime.GOOS {
-		case "linux":
-			if stat, ok := info.Sys().(*syscall.Stat_t); ok {
-				cTime = time.Unix(stat.Ctim.Sec, stat.Ctim.Nsec).UTC()
-			}
-		}
+		sec := (ms / MsPerSec) - WebkitEpochOffset
+		return time.Unix(sec, (ms%MsPerSec)*1000).UTC(), nil
 	}
 
 	return time.Date(
-		cTime.Year(),
-		cTime.Month(),
-		cTime.Day(),
-		cTime.Hour(),
-		cTime.Minute(),
-		cTime.Second(),
-		cTime.Nanosecond(),
+		group(1),
+		time.Month(group(2)),
+		group(3),
+		group(4),
+		group(5),
+		group(6),
+		group(7)*int(time.Millisecond),
 		time.UTC,
 	), nil
 }
 
-// Return target file. Ignore files already using Voit method unless explicitly
-// renaming Voit file names.
-func FormatName(filename string, pattern string, lower bool, strip bool, created bool, modified bool) string {
-	var date time.Time
-	var err error
-	if created || modified {
-		date, err = parseFileTime(filename, created, modified)
-	} else {
-		date, err = parseFile(filename, pattern)
-	}
-
+// Generate File.Target modifying no other attributes. Lower lowercases
+// extension and description. Strip removes matched pattern from description.
+func GenTargetName(file *models.File, pattern string, lower bool, strip bool, NoDesc bool, dSep string, tSep string) {
+	source, err := filepath.Abs(filepath.Dir(file.Source))
 	if err != nil {
-		return filename
+		log.Fatalf("Failed to set absolute path: %v", err)
 	}
-	if strings.HasPrefix(filename, date.Format("2006-01-02T15.04.05.000")) && pattern != "v" {
-		return filename
-	}
+	date := fmt.Sprintf("%s", file.VTime.Format("2006-01-02T15.04.05.000"))
+	desc := file.Desc
+	ext := file.Ext
 
-	file := filename
 	if lower {
-		file = strings.ToLower(filename)
+		desc = strings.ToLower(desc)
+		ext = strings.ToLower(ext)
 	}
 
-	if strip {
-		extension := filepath.Ext(file)
-		return fmt.Sprintf("%s%s", date.Format("2006-01-02T15.04.05.000"), extension)
+	file.Matched = models.Patterns[pattern].MatchString(desc)
+
+	if strip && file.Matched {
+		// Return all non-regex matched strings, removing empty strings, and join them.
+		pieces := models.Patterns[pattern].Split(desc, -1)
+		desc = strings.Join(slices.DeleteFunc(pieces, func(s string) bool { return s == "" }), "")
 	}
-	return fmt.Sprintf("%s - %s", date.Format("2006-01-02T15.04.05.000"), file)
+
+	if NoDesc {
+		desc = ""
+	}
+
+	file.Target = filepath.Join(source, date+dSep+desc+tSep+strings.Join(file.Tags, " ")+ext)
 }

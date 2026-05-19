@@ -1,1160 +1,619 @@
 package internal
 
 import (
-	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/r-pufky/voit/models"
 )
 
-type FormatTestCase struct {
-	test     string
-	filename string
-	pattern  string
-	lower    bool
-	strip    bool
-	created  bool
-	modified bool
-	want     string
-}
+var (
+	fixedCTime      = time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC)
+	fixedMTime      = time.Date(2026, time.February, 1, 14, 0, 0, 0, time.UTC)
+	parsedTime      = time.Date(2026, time.May, 17, 10, 45, 36, 300000000, time.UTC)
+	formattedTime   = "2026-05-17T10.45.36.300"
+	parsedTimeNoMS  = time.Date(2026, time.May, 17, 10, 45, 36, 0, time.UTC)
+	parsedTimeShort = time.Date(2026, time.May, 17, 10, 45, 0, 0, time.UTC)
+	voitTime        = time.Date(2026, time.February, 2, 12, 5, 20, 700000000, time.UTC)
+	baseTags        = []string{"summer", "vacation", "beach"}
+	baseDesc        = "beach vacation"
+)
 
-func runFormatTests(t *testing.T, tests []FormatTestCase) {
-	for _, tt := range tests {
-		t.Run(tt.test, func(t *testing.T) {
-			got := FormatName(tt.filename, tt.pattern, tt.lower, tt.strip, tt.created, tt.modified)
-			if got != tt.want {
-				t.Errorf("\nInput: %s\nGot:   %s\nWant:  %s", tt.filename, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestMS(t *testing.T) {
-	tests := []FormatTestCase{
-		{
-			test:     "ms bare",
-			filename: "20231027_103005123.jpg",
-			pattern:  "ms",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - 20231027_103005123.jpg",
-		},
-		{
-			test:     "ms bare alternative separator",
-			filename: "20231027-103005123.jpg",
-			pattern:  "ms",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - 20231027-103005123.jpg",
-		},
-		{
-			test:     "ms bare strip",
-			filename: "20231027_103005123.jpg",
-			pattern:  "ms",
-			lower:    false,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.123.jpg",
-		},
-		{
-			test:     "ms leading",
-			filename: "IMG_20231027_103005123.jpg",
-			pattern:  "ms",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - IMG_20231027_103005123.jpg",
-		},
-		{
-			test:     "ms leading lowercase",
-			filename: "IMG_20231027_103005123.JPG",
-			pattern:  "ms",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - img_20231027_103005123.jpg",
-		},
-		{
-			test:     "ms leading lowercase strip",
-			filename: "IMG_20231027_103005123.JPG",
-			pattern:  "ms",
-			lower:    true,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.123.jpg",
-		},
-		{
-			test:     "ms leading and trailing",
-			filename: "PXL_20231027_103005123-1.jpg",
-			pattern:  "ms",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - PXL_20231027_103005123-1.jpg",
-		},
-		{
-			test:     "ms leading and trailing lowercase",
-			filename: "PXL_20231027_103005123-1.jpg",
-			pattern:  "ms",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - pxl_20231027_103005123-1.jpg",
-		},
-		{
-			test:     "ms additional numerics",
-			filename: "2343_20231027_103005123_34-2342-1.jpg",
-			pattern:  "ms",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - 2343_20231027_103005123_34-2342-1.jpg",
-		},
-		{
-			test:     "ms no match",
-			filename: "2023-10-27-10-30-05-456.mp4",
-			pattern:  "ms",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27-10-30-05-456.mp4",
-		},
-		{
-			test:     "ms idempotency",
-			filename: "2023-10-27T10.30.05.123 - IMG_20231027_103005123.jpg",
-			pattern:  "ms",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - IMG_20231027_103005123.jpg",
-		},
-		{
-			test:     "ms idempotency lowercase",
-			filename: "2023-10-27T10.30.05.123 - IMG_20231027_103005123.jpg",
-			pattern:  "ms",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - IMG_20231027_103005123.jpg",
-		},
-	}
-	runFormatTests(t, tests)
-}
-
-func TestMNS(t *testing.T) {
-	tests := []FormatTestCase{
-		{
-			test:     "mns bare",
-			filename: "2023-10-27-10-30-05-456.mp4",
-			pattern:  "mns",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.456 - 2023-10-27-10-30-05-456.mp4",
-		},
-		{
-			test:     "mns bare alternative separator",
-			filename: "2023_10_27_10_30_05_456.mp4",
-			pattern:  "mns",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.456 - 2023_10_27_10_30_05_456.mp4",
-		},
-		{
-			test:     "mns bare strip",
-			filename: "2023-10-27-10-30-05-456.mp4",
-			pattern:  "mns",
-			lower:    false,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.456.mp4",
-		},
-		{
-			test:     "mns leading",
-			filename: "test vid 2023_10_27_10_30_05_456.mp4",
-			pattern:  "mns",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.456 - test vid 2023_10_27_10_30_05_456.mp4",
-		},
-		{
-			test:     "mns leading lowercase",
-			filename: "TEST VID 2023_10_27_10_30_05_456.MP4",
-			pattern:  "mns",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.456 - test vid 2023_10_27_10_30_05_456.mp4",
-		},
-		{
-			test:     "mns leading lowercase strip",
-			filename: "TEST VID 2023_10_27_10_30_05_456.MP4",
-			pattern:  "mns",
-			lower:    true,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.456.mp4",
-		},
-		{
-			test:     "mns leading and trailing",
-			filename: "test vid 2023_10_27_10_30_05_456-1.mp4",
-			pattern:  "mns",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.456 - test vid 2023_10_27_10_30_05_456-1.mp4",
-		},
-		{
-			test:     "mns leading and trailing lowercase",
-			filename: "TEST VID 2023_10_27_10_30_05_456-TEST.mp4",
-			pattern:  "mns",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.456 - test vid 2023_10_27_10_30_05_456-test.mp4",
-		},
-		{
-			test:     "mns additional numerics",
-			filename: "2343_2023_10_27_10_30_05_456_34-2342-1.mp4",
-			pattern:  "mns",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.456 - 2343_2023_10_27_10_30_05_456_34-2342-1.mp4",
-		},
-		{
-			test:     "mns no match",
-			filename: "20231027_103005123.jpg",
-			pattern:  "mns",
-			lower:    false,
-			strip:    false,
-			want:     "20231027_103005123.jpg",
-		},
-		{
-			test:     "mns idempotency",
-			filename: "2023-10-27T10.30.05.456 - TEST VID 2023_10_27_10_30_05_456-TEST.mp4",
-			pattern:  "mns",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.456 - TEST VID 2023_10_27_10_30_05_456-TEST.mp4",
-		},
-		{
-			test:     "mns idempotency lowercase",
-			filename: "2023-10-27T10.30.05.456 - TEST VID 2023_10_27_10_30_05_456-TEST.mp4",
-			pattern:  "mns",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.456 - TEST VID 2023_10_27_10_30_05_456-TEST.mp4",
-		},
-	}
-	runFormatTests(t, tests)
-}
-
-func TestMFS(t *testing.T) {
-	tests := []FormatTestCase{
-		{
-			test:     "mfs bare",
-			filename: "20231027103005123.jpg",
-			pattern:  "mfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - 20231027103005123.jpg",
-		},
-		{
-			test:     "mfs bare strip",
-			filename: "20231027103005123.jpg",
-			pattern:  "mfs",
-			lower:    false,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.123.jpg",
-		},
-		{
-			test:     "mfs leading",
-			filename: "IMG_20231027103005123.jpg",
-			pattern:  "mfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - IMG_20231027103005123.jpg",
-		},
-		{
-			test:     "mfs leading lowercase",
-			filename: "IMG_20231027103005123.JPG",
-			pattern:  "mfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - img_20231027103005123.jpg",
-		},
-		{
-			test:     "mfs leading lowercase strip",
-			filename: "IMG_20231027103005123.JPG",
-			pattern:  "mfs",
-			lower:    true,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.123.jpg",
-		},
-		{
-			test:     "mfs leading and trailing",
-			filename: "PXL_20231027103005123-1.jpg",
-			pattern:  "mfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - PXL_20231027103005123-1.jpg",
-		},
-		{
-			test:     "mfs leading and trailing lowercase",
-			filename: "PXL_20231027103005123-1.jpg",
-			pattern:  "mfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - pxl_20231027103005123-1.jpg",
-		},
-		{
-			test:     "mfs additional numerics",
-			filename: "2343_20231027103005123_34-2342-1.jpg",
-			pattern:  "mfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - 2343_20231027103005123_34-2342-1.jpg",
-		},
-		{
-			test:     "mfs no match",
-			filename: "2023-10-27-10-30-05-456.mp4",
-			pattern:  "mfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27-10-30-05-456.mp4",
-		},
-		{
-			test:     "mfs idempotency",
-			filename: "2023-10-27T10.30.05.123 - PXL_20231027103005123-1.jpg",
-			pattern:  "mfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - PXL_20231027103005123-1.jpg",
-		},
-		{
-			test:     "mfs idempotency lowercase",
-			filename: "2023-10-27T10.30.05.123 - PXL_20231027103005123-1.jpg",
-			pattern:  "mfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - PXL_20231027103005123-1.jpg",
-		},
-	}
-	runFormatTests(t, tests)
-}
-
-func TestS(t *testing.T) {
-	tests := []FormatTestCase{
-		{
-			test:     "s bare",
-			filename: "20231027_103005.jpg",
-			pattern:  "s",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 20231027_103005.jpg",
-		},
-		{
-			test:     "s bare alternative separator",
-			filename: "20231027-103005.jpg",
-			pattern:  "s",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 20231027-103005.jpg",
-		},
-		{
-			test:     "s bare strip",
-			filename: "20231027_103005.jpg",
-			pattern:  "s",
-			lower:    false,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.000.jpg",
-		},
-		{
-			test:     "s leading",
-			filename: "IMG_20231027_103005.jpg",
-			pattern:  "s",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - IMG_20231027_103005.jpg",
-		},
-		{
-			test:     "s leading lowercase",
-			filename: "IMG_20231027_103005.JPG",
-			pattern:  "s",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - img_20231027_103005.jpg",
-		},
-		{
-			test:     "s leading lowercase strip",
-			filename: "IMG_20231027_103005.JPG",
-			pattern:  "s",
-			lower:    true,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.000.jpg",
-		},
-		{
-			test:     "s leading and trailing",
-			filename: "PXL_20231027_103005-1.jpg",
-			pattern:  "s",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - PXL_20231027_103005-1.jpg",
-		},
-		{
-			test:     "s leading and trailing lowercase",
-			filename: "PXL_20231027_103005-1.jpg",
-			pattern:  "s",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - pxl_20231027_103005-1.jpg",
-		},
-		{
-			test:     "s additional numerics",
-			filename: "2343_20231027_103005_34-2342-1.jpg",
-			pattern:  "s",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 2343_20231027_103005_34-2342-1.jpg",
-		},
-		{
-			test:     "s no match",
-			filename: "2023-10-27-10-30-05-456.mp4",
-			pattern:  "s",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27-10-30-05-456.mp4",
-		},
-		{
-			test:     "s idempotency",
-			filename: "2023-10-27T10.30.05.000 - PXL_20231027_103005-1.jpg",
-			pattern:  "s",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - PXL_20231027_103005-1.jpg",
-		},
-		{
-			test:     "s idempotency lowercase",
-			filename: "2023-10-27T10.30.05.000 - PXL_20231027_103005-1.jpg",
-			pattern:  "s",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - PXL_20231027_103005-1.jpg",
-		},
-	}
-	runFormatTests(t, tests)
-}
-
-func TestNS(t *testing.T) {
-	tests := []FormatTestCase{
-		{
-			test:     "ns bare",
-			filename: "2023-10-27-10-30-05.mp4",
-			pattern:  "ns",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 2023-10-27-10-30-05.mp4",
-		},
-		{
-			test:     "ns bare strip",
-			filename: "2023-10-27-10-30-05.mp4",
-			pattern:  "ns",
-			lower:    false,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.000.mp4",
-		},
-		{
-			test:     "ns bare alternative separator",
-			filename: "2023_10_27_10_30_05.mp4",
-			pattern:  "ns",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 2023_10_27_10_30_05.mp4",
-		},
-		{
-			test:     "ns leading",
-			filename: "test vid 2023_10_27_10_30_05.mp4",
-			pattern:  "ns",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - test vid 2023_10_27_10_30_05.mp4",
-		},
-		{
-			test:     "ns leading lowercase",
-			filename: "TEST VID 2023_10_27_10_30_05.MP4",
-			pattern:  "ns",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - test vid 2023_10_27_10_30_05.mp4",
-		},
-		{
-			test:     "ns leading lowercase strip",
-			filename: "TEST VID 2023_10_27_10_30_05.MP4",
-			pattern:  "ns",
-			lower:    true,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.000.mp4",
-		},
-		{
-			test:     "ns leading and trailing",
-			filename: "test vid 2023_10_27_10_30_05-1.mp4",
-			pattern:  "ns",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - test vid 2023_10_27_10_30_05-1.mp4",
-		},
-		{
-			test:     "ns leading and trailing lowercase",
-			filename: "TEST VID 2023_10_27_10_30_05-1.mp4",
-			pattern:  "ns",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - test vid 2023_10_27_10_30_05-1.mp4",
-		},
-		{
-			test:     "ns additional numerics",
-			filename: "2343_2023_10_27_10_30_05_34-2342-1.mp4",
-			pattern:  "ns",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 2343_2023_10_27_10_30_05_34-2342-1.mp4",
-		},
-		{
-			test:     "ns no match",
-			filename: "20231027_103005123.jpg",
-			pattern:  "ns",
-			lower:    false,
-			strip:    false,
-			want:     "20231027_103005123.jpg",
-		},
-		{
-			test:     "ns idempotency",
-			filename: "2023-10-27T10.30.05.000 - TEST VID 2023_10_27_10_30_05-1.mp4",
-			pattern:  "ns",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - TEST VID 2023_10_27_10_30_05-1.mp4",
-		},
-		{
-			test:     "ns idempotency lowercase",
-			filename: "2023-10-27T10.30.05.000 - TEST VID 2023_10_27_10_30_05-1.mp4",
-			pattern:  "ns",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - TEST VID 2023_10_27_10_30_05-1.mp4",
-		},
-	}
-	runFormatTests(t, tests)
-}
-
-func TestFS(t *testing.T) {
-	tests := []FormatTestCase{
-		{
-			test:     "fs bare",
-			filename: "20231027103005.jpg",
-			pattern:  "fs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 20231027103005.jpg",
-		},
-		{
-			test:     "fs bare strip",
-			filename: "20231027103005.jpg",
-			pattern:  "fs",
-			lower:    false,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.000.jpg",
-		},
-		{
-			test:     "fs leading",
-			filename: "IMG_20231027103005.jpg",
-			pattern:  "fs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - IMG_20231027103005.jpg",
-		},
-		{
-			test:     "fs leading lowercase",
-			filename: "IMG_20231027103005.JPG",
-			pattern:  "fs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - img_20231027103005.jpg",
-		},
-		{
-			test:     "fs leading lowercase strip",
-			filename: "IMG_20231027103005.JPG",
-			pattern:  "fs",
-			lower:    true,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.000.jpg",
-		},
-		{
-			test:     "fs leading and trailing",
-			filename: "PXL_20231027103005123-1.jpg",
-			pattern:  "fs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - PXL_20231027103005123-1.jpg",
-		},
-		{
-			test:     "fs leading and trailing lowercase",
-			filename: "PXL_20231027103005123-1.jpg",
-			pattern:  "fs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - pxl_20231027103005123-1.jpg",
-		},
-		{
-			test:     "fs additional numerics",
-			filename: "2343_20231027103005123_34-2342-1.jpg",
-			pattern:  "fs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 2343_20231027103005123_34-2342-1.jpg",
-		},
-		{
-			test:     "fs no match",
-			filename: "2023-10-27-10-30-05-456.mp4",
-			pattern:  "fs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27-10-30-05-456.mp4",
-		},
-		{
-			test:     "fs idempotency",
-			filename: "2023-10-27T10.30.05.000 - PXL_20231027103005123-1.jpg",
-			pattern:  "fs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - PXL_20231027103005123-1.jpg",
-		},
-		{
-			test:     "fs idempotency lowercase",
-			filename: "2023-10-27T10.30.05.000 - PXL_20231027103005123-1.jpg",
-			pattern:  "fs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - PXL_20231027103005123-1.jpg",
-		},
-	}
-	runFormatTests(t, tests)
-}
-
-func TestW(t *testing.T) {
-	tests := []FormatTestCase{
-		{
-			test:     "w bare",
-			filename: "13423083387000000.jpg",
-			pattern:  "w",
-			lower:    false,
-			strip:    false,
-			want:     "2026-05-12T18.16.27.000 - 13423083387000000.jpg",
-		},
-		{
-			test:     "w bare strip",
-			filename: "13423083387000000.jpg",
-			pattern:  "w",
-			lower:    false,
-			strip:    true,
-			want:     "2026-05-12T18.16.27.000.jpg",
-		},
-		{
-			test:     "w leading",
-			filename: "IMG_13423083387000000.jpg",
-			pattern:  "w",
-			lower:    false,
-			strip:    false,
-			want:     "2026-05-12T18.16.27.000 - IMG_13423083387000000.jpg",
-		},
-		{
-			test:     "w leading lowercase",
-			filename: "IMG_13423083387000000.jpg",
-			pattern:  "w",
-			lower:    true,
-			strip:    false,
-			want:     "2026-05-12T18.16.27.000 - img_13423083387000000.jpg",
-		},
-		{
-			test:     "w leading lowercase strip",
-			filename: "IMG_13423083387000000.jpg",
-			pattern:  "w",
-			lower:    true,
-			strip:    true,
-			want:     "2026-05-12T18.16.27.000.jpg",
-		},
-		{
-			test:     "w leading and trailing",
-			filename: "PXL_13423083387000000-1.jpg",
-			pattern:  "w",
-			lower:    false,
-			strip:    false,
-			want:     "2026-05-12T18.16.27.000 - PXL_13423083387000000-1.jpg",
-		},
-		{
-			test:     "w leading and trailing lowercase",
-			filename: "PXL_13423083387000000-1.jpg",
-			pattern:  "w",
-			lower:    true,
-			strip:    false,
-			want:     "2026-05-12T18.16.27.000 - pxl_13423083387000000-1.jpg",
-		},
-		{
-			test:     "w additional numerics",
-			filename: "2343_13423083387000000-2342-1.jpg",
-			pattern:  "w",
-			lower:    true,
-			strip:    false,
-			want:     "2026-05-12T18.16.27.000 - 2343_13423083387000000-2342-1.jpg",
-		},
-		{
-			test:     "w no match",
-			filename: "2023-10-27-10-30-05-456.mp4",
-			pattern:  "w",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27-10-30-05-456.mp4",
-		},
-		{
-			test:     "w idempotency",
-			filename: "2026-05-12T18.16.27.000 - 2343_13423083387000000-2342-1.jpg",
-			pattern:  "w",
-			lower:    false,
-			strip:    false,
-			want:     "2026-05-12T18.16.27.000 - 2343_13423083387000000-2342-1.jpg",
-		},
-		{
-			test:     "w idempotency lowercase",
-			filename: "2026-05-12T18.16.27.000 - PXL_13423083387000000-2342-1.jpg",
-			pattern:  "w",
-			lower:    true,
-			strip:    false,
-			want:     "2026-05-12T18.16.27.000 - PXL_13423083387000000-2342-1.jpg",
-		},
-	}
-	runFormatTests(t, tests)
-}
-
-func TestV(t *testing.T) {
-	tests := []FormatTestCase{
-		{
-			test:     "v bare",
-			filename: "2023-10-27T10.30.05.000.jpg",
-			pattern:  "v",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 2023-10-27T10.30.05.000.jpg",
-		},
-		{
-			test:     "v bare strip",
-			filename: "2023-10-27T10.30.05.000.jpg",
-			pattern:  "v",
-			lower:    false,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.000.jpg",
-		},
-		{
-			test:     "v leading",
-			filename: "IMG_2023-10-27T10.30.05.000.jpg",
-			pattern:  "v",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - IMG_2023-10-27T10.30.05.000.jpg",
-		},
-		{
-			test:     "v leading lowercase",
-			filename: "IMG_2023-10-27T10.30.05.000.jpg",
-			pattern:  "v",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - img_2023-10-27t10.30.05.000.jpg",
-		},
-		{
-			test:     "v leading lowercase strip",
-			filename: "IMG_2023-10-27T10.30.05.000.jpg",
-			pattern:  "v",
-			lower:    true,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.000.jpg",
-		},
-		{
-			test:     "v leading and trailing",
-			filename: "PXL_2023-10-27T10.30.05.000-1.jpg",
-			pattern:  "v",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - PXL_2023-10-27T10.30.05.000-1.jpg",
-		},
-		{
-			test:     "v leading and trailing lowercase",
-			filename: "PXL_2023-10-27T10.30.05.000-1.jpg",
-			pattern:  "v",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - pxl_2023-10-27t10.30.05.000-1.jpg",
-		},
-		{
-			test:     "v additional numerics",
-			filename: "2343_2023-10-27T10.30.05.000-2342-1.jpg",
-			pattern:  "v",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 2343_2023-10-27t10.30.05.000-2342-1.jpg",
-		},
-		{
-			test:     "v no match",
-			filename: "2023-10-27-10-30-05-456.mp4",
-			pattern:  "v",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27-10-30-05-456.mp4",
-		},
-		// No idempotency as matching source and target patterns will always expand
-		// filename.
-	}
-	runFormatTests(t, tests)
-}
-
-func TestHFS(t *testing.T) {
-	tests := []FormatTestCase{
-		{
-			test:     "hfs bare",
-			filename: "2023-10-27T103005.jpg",
-			pattern:  "hfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 2023-10-27T103005.jpg",
-		},
-		{
-			test:     "hfs bare strip",
-			filename: "2023-10-27T103005.jpg",
-			pattern:  "hfs",
-			lower:    false,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.000.jpg",
-		},
-		{
-			test:     "hfs leading",
-			filename: "IMG_2023-10-27T103005.jpg",
-			pattern:  "hfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - IMG_2023-10-27T103005.jpg",
-		},
-		{
-			test:     "hfs leading lowercase",
-			filename: "IMG_2023-10-27T103005.jpg",
-			pattern:  "hfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - img_2023-10-27t103005.jpg",
-		},
-		{
-			test:     "hfs leading lowercase strip",
-			filename: "IMG_2023-10-27T103005.jpg",
-			pattern:  "hfs",
-			lower:    true,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.000.jpg",
-		},
-		{
-			test:     "hfs leading and trailing",
-			filename: "PXL_2023-10-27T103005-1.jpg",
-			pattern:  "hfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - PXL_2023-10-27T103005-1.jpg",
-		},
-		{
-			test:     "hfs leading and trailing lowercase",
-			filename: "PXL_2023-10-27T103005-1.jpg",
-			pattern:  "hfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - pxl_2023-10-27t103005-1.jpg",
-		},
-		{
-			test:     "hfs additional numerics",
-			filename: "2343_2023-10-27T103005-2342-1.jpg",
-			pattern:  "hfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - 2343_2023-10-27t103005-2342-1.jpg",
-		},
-		{
-			test:     "hfs no match",
-			filename: "2023-10-27-10-30-05-456.mp4",
-			pattern:  "hfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27-10-30-05-456.mp4",
-		},
-		{
-			test:     "hfs idempotency",
-			filename: "2023-10-27T10.30.05.000 - IMG_2023-10-27T103005.jpg",
-			pattern:  "hfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - IMG_2023-10-27T103005.jpg",
-		},
-		{
-			test:     "hfs idempotency lowercase",
-			filename: "2023-10-27T10.30.05.000 - IMG_2023-10-27T103005.jpg",
-			pattern:  "hfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.000 - IMG_2023-10-27T103005.jpg",
-		},
-	}
-	runFormatTests(t, tests)
-}
-
-func TestHSFS(t *testing.T) {
-	tests := []FormatTestCase{
-		{
-			test:     "hsfs bare",
-			filename: "2023-10-27T1030.jpg",
-			pattern:  "hsfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.00.000 - 2023-10-27T1030.jpg",
-		},
-		{
-			test:     "hsfs bare strip",
-			filename: "2023-10-27T1030.jpg",
-			pattern:  "hsfs",
-			lower:    false,
-			strip:    true,
-			want:     "2023-10-27T10.30.00.000.jpg",
-		},
-		{
-			test:     "hsfs leading",
-			filename: "IMG_2023-10-27T1030.jpg",
-			pattern:  "hsfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.00.000 - IMG_2023-10-27T1030.jpg",
-		},
-		{
-			test:     "hsfs leading lowercase",
-			filename: "IMG_2023-10-27T1030.jpg",
-			pattern:  "hsfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.00.000 - img_2023-10-27t1030.jpg",
-		},
-		{
-			test:     "hsfs leading lowercase strip",
-			filename: "IMG_2023-10-27T1030.jpg",
-			pattern:  "hsfs",
-			lower:    true,
-			strip:    true,
-			want:     "2023-10-27T10.30.00.000.jpg",
-		},
-		{
-			test:     "hsfs leading and trailing",
-			filename: "PXL_2023-10-27T103005-1.jpg",
-			pattern:  "hsfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.00.000 - PXL_2023-10-27T103005-1.jpg",
-		},
-		{
-			test:     "hsfs leading and trailing lowercase",
-			filename: "PXL_2023-10-27T103005-1.jpg",
-			pattern:  "hsfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.00.000 - pxl_2023-10-27t103005-1.jpg",
-		},
-		{
-			test:     "hsfs additional numerics",
-			filename: "2343_2023-10-27T103005-2342-1.jpg",
-			pattern:  "hsfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.00.000 - 2343_2023-10-27t103005-2342-1.jpg",
-		},
-		{
-			test:     "hsfs no match",
-			filename: "2023-10-27-10-30-05-456.mp4",
-			pattern:  "hsfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27-10-30-05-456.mp4",
-		},
-		{
-			test:     "hsfs idempotency",
-			filename: "2023-10-27T10.30.00.000 - IMG_2023-10-27T1030.jpg",
-			pattern:  "hsfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.00.000 - IMG_2023-10-27T1030.jpg",
-		},
-		{
-			test:     "hsfs idempotency lowercase",
-			filename: "2023-10-27T10.30.00.000 - IMG_2023-10-27T1030.jpg",
-			pattern:  "hsfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.00.000 - IMG_2023-10-27T1030.jpg",
-		},
-	}
-	runFormatTests(t, tests)
-}
-
-func TestHMFS(t *testing.T) {
-	tests := []FormatTestCase{
-		{
-			test:     "hmfs bare",
-			filename: "2023-10-27T103005123.jpg",
-			pattern:  "hmfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - 2023-10-27T103005123.jpg",
-		},
-		{
-			test:     "hmfs bare strip",
-			filename: "2023-10-27T103005123.jpg",
-			pattern:  "hmfs",
-			lower:    false,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.123.jpg",
-		},
-		{
-			test:     "hmfs leading",
-			filename: "IMG_2023-10-27T103005123.jpg",
-			pattern:  "hmfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - IMG_2023-10-27T103005123.jpg",
-		},
-		{
-			test:     "hmfs leading lowercase",
-			filename: "IMG_2023-10-27T103005123.jpg",
-			pattern:  "hmfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - img_2023-10-27t103005123.jpg",
-		},
-		{
-			test:     "hmfs leading lowercase strip",
-			filename: "IMG_2023-10-27T103005123.jpg",
-			pattern:  "hmfs",
-			lower:    true,
-			strip:    true,
-			want:     "2023-10-27T10.30.05.123.jpg",
-		},
-		{
-			test:     "hmfs leading and trailing",
-			filename: "PXL_2023-10-27T103005123-1.jpg",
-			pattern:  "hmfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - PXL_2023-10-27T103005123-1.jpg",
-		},
-		{
-			test:     "hmfs leading and trailing lowercase",
-			filename: "PXL_2023-10-27T103005123-1.jpg",
-			pattern:  "hmfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - pxl_2023-10-27t103005123-1.jpg",
-		},
-		{
-			test:     "hmfs additional numerics",
-			filename: "2343_2023-10-27T103005123-2342-1.jpg",
-			pattern:  "hmfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - 2343_2023-10-27t103005123-2342-1.jpg",
-		},
-		{
-			test:     "hmfs no match",
-			filename: "2023-10-27-10-30-05-456.mp4",
-			pattern:  "hmfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27-10-30-05-456.mp4",
-		},
-		{
-			test:     "hmfs idempotency",
-			filename: "2023-10-27T10.30.05.123 - IMG_2023-10-27T103005123.jpg",
-			pattern:  "hmfs",
-			lower:    false,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - IMG_2023-10-27T103005123.jpg",
-		},
-		{
-			test:     "ns idempotency lowercase",
-			filename: "2023-10-27T10.30.05.123 - IMG_2023-10-27T103005123.jpg",
-			pattern:  "hmfs",
-			lower:    true,
-			strip:    false,
-			want:     "2023-10-27T10.30.05.123 - IMG_2023-10-27T103005123.jpg",
-		},
-	}
-	runFormatTests(t, tests)
-}
-
-func TestParseFileTime(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "testfile")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
-
-	info, _ := os.Stat(tmpFile.Name())
-	expectedModTime := info.ModTime().UTC()
-
+func TestParse(t *testing.T) {
 	tests := []struct {
-		name     string
-		file     string
-		created  bool
-		modified bool
-		wantErr  bool
+		name      string
+		fName     string
+		pattern   string
+		force     bool
+		descSep   string
+		tagsSep   string
+		wantVTime time.Time
+		wantTags  []string
+		wantDesc  string
 	}{
+		// Sanity checks.
 		{
-			name:     "File does not exist",
-			file:     "non_existent_file.txt",
-			created:  true,
-			modified: true,
-			wantErr:  true,
+			name:      "sanity: sanitized format",
+			fName:     "2026-02-02T12.05.20.700 - beach vacation -- summer vacation beach",
+			pattern:   "photo",
+			wantVTime: voitTime,
+			wantDesc:  baseDesc,
+			wantTags:  baseTags,
 		},
 		{
-			name:     "Both flags false returns empty time",
-			file:     tmpFile.Name(),
-			created:  false,
-			modified: false,
-			wantErr:  false,
+			name:      "sanity: sanitized format [desc:' ', tag:' - ']",
+			fName:     "2026-02-02T12.05.20.700 beach vacation - summer vacation beach",
+			pattern:   "photo",
+			descSep:   " ",
+			tagsSep:   " - ",
+			wantVTime: voitTime,
+			wantDesc:  baseDesc,
+			wantTags:  baseTags,
 		},
 		{
-			name:     "Modified time",
-			file:     tmpFile.Name(),
-			created:  false,
-			modified: true,
-			wantErr:  false,
+			name:      "sanity: no matches",
+			fName:     "not-a-date-file",
+			pattern:   "photo",
+			wantVTime: time.Time{},
+			wantDesc:  "not-a-date-file",
+			wantTags:  []string{},
+		},
+		// Tags.
+		{
+			name:      "tags: lowercased",
+			fName:     "2026-02-02T12.05.20.700 - beach vacation -- SUMMER VACATION BEACH",
+			pattern:   "photo",
+			wantVTime: voitTime,
+			wantDesc:  baseDesc,
+			wantTags:  baseTags,
 		},
 		{
-			name:     "Created time",
-			file:     tmpFile.Name(),
-			created:  true,
-			modified: false,
-			wantErr:  false,
+			name:      "tags: digikam tag spacers",
+			fName:     "2026-02-02T12.05.20.700 - beach vacation -- nested_tag_summer vacation beach",
+			pattern:   "photo",
+			wantVTime: voitTime,
+			wantDesc:  baseDesc,
+			wantTags:  []string{"nested_tag_summer", "vacation", "beach"},
+		},
+		{
+			name:      "tags: empty [trailing space]",
+			fName:     "2026-02-02T12.05.20.700 - beach vacation -- ",
+			pattern:   "photo",
+			wantVTime: voitTime,
+			wantDesc:  baseDesc,
+			wantTags:  []string{},
+		},
+		{
+			name:      "tags: empty [invalid separator]",
+			fName:     "2026-02-02T12.05.20.700 - beach vacation --",
+			pattern:   "photo",
+			wantVTime: voitTime,
+			wantDesc:  "beach vacation --",
+			wantTags:  []string{},
+		},
+		// VTIME.
+		{
+			name:      "vtime: non matched date pattern",
+			fName:     "2026-02-02T12.05.20.700 - 2026-05-02T17.10.45.000 beach vacation -- summer vacation beach",
+			pattern:   "photo",
+			wantVTime: voitTime,
+			wantDesc:  "2026-05-02T17.10.45.000 beach vacation",
+			wantTags:  baseTags,
+		},
+		{
+			name:      "vtime: non matched pattern [desc:' ', tag:' - ']",
+			fName:     "2026-02-02T12.05.20.700 2026-05-02T17.10.45.000 beach vacation - summer vacation beach",
+			pattern:   "photo",
+			descSep:   " ",
+			tagsSep:   " - ",
+			wantVTime: voitTime,
+			wantDesc:  "2026-05-02T17.10.45.000 beach vacation",
+			wantTags:  baseTags,
+		},
+		{
+			name:      "vtime: invalid separator causing regex to fail full name to description",
+			fName:     "2026-02-02T12.05.20.700 2026-05-02T17.10.45.000 beach vacation -- summer vacation beach",
+			pattern:   "photo",
+			wantVTime: time.Time{},
+			wantDesc:  "2026-02-02T12.05.20.700 2026-05-02T17.10.45.000 beach vacation",
+			wantTags:  baseTags,
+		},
+		// Desc.
+		{
+			name:      "desc: missing tag separator",
+			fName:     "2026-02-02T12.05.20.700 - beach vacation",
+			pattern:   "photo",
+			wantVTime: voitTime,
+			wantDesc:  baseDesc,
+			wantTags:  []string{},
+		},
+		{
+			name:      "desc: missing description [desc: '', all separator space]",
+			fName:     "2026-02-02T12.05.20.700 -  -- summer vacation beach",
+			pattern:   "photo",
+			wantVTime: voitTime,
+			wantDesc:  "",
+			wantTags:  baseTags,
+		},
+		{
+			name:      "desc: missing description [desc: '', separators overlap]",
+			fName:     "2026-02-02T12.05.20.700 - -- summer vacation beach",
+			pattern:   "photo",
+			wantVTime: time.Time{}, // Will not parse as ' - ' is not found.
+			wantDesc:  "2026-02-02T12.05.20.700 -",
+			wantTags:  baseTags,
+		},
+		{
+			name:      "desc: missing date separator",
+			fName:     "2026-02-02T12.05.20.700 beach vacation -- SUMMER VACATION BEACH",
+			pattern:   "photo",
+			wantVTime: time.Time{}, // Will not parse as ' - ' is not found.
+			wantDesc:  "2026-02-02T12.05.20.700 beach vacation",
+			wantTags:  baseTags,
+		},
+		// Patterns.
+		{
+			name:      "pattern: ctime used",
+			fName:     "beach vacation -- summer vacation beach",
+			pattern:   "created",
+			wantVTime: fixedCTime,
+			wantDesc:  baseDesc,
+			wantTags:  baseTags,
+		},
+		{
+			name:      "pattern: ctime used with vtime",
+			fName:     "2026-02-02T12.05.20.700 - beach vacation -- summer vacation beach",
+			pattern:   "created",
+			wantVTime: voitTime,
+			wantDesc:  baseDesc,
+			wantTags:  baseTags,
+		},
+		{
+			name:      "pattern: ctime used with vtime [forced]",
+			fName:     "2026-02-02T12.05.20.700 - beach vacation -- summer vacation beach",
+			pattern:   "created",
+			force:     true,
+			wantVTime: fixedCTime,
+			wantDesc:  baseDesc,
+			wantTags:  baseTags,
+		},
+		{
+			name:      "pattern: mtime used",
+			fName:     "beach vacation -- summer vacation beach",
+			pattern:   "modified",
+			wantVTime: fixedMTime,
+			wantDesc:  baseDesc,
+			wantTags:  baseTags,
+		},
+		{
+			name:      "pattern: mtime used with vtime",
+			fName:     "2026-02-02T12.05.20.700 - beach vacation -- summer vacation beach",
+			pattern:   "modified",
+			wantVTime: voitTime,
+			wantDesc:  baseDesc,
+			wantTags:  baseTags,
+		},
+		{
+			name:      "pattern: mtime used with vtime [forced]",
+			fName:     "beach vacation -- summer vacation beach",
+			pattern:   "modified",
+			force:     true,
+			wantVTime: fixedMTime,
+			wantDesc:  baseDesc,
+			wantTags:  baseTags,
+		},
+		// Actual filename tests.
+		{
+			name:      "actual: photo-ms",
+			fName:     "PXL_20260517_104536300~1",
+			pattern:   "photo-ms",
+			wantVTime: parsedTime,
+			wantDesc:  "PXL_20260517_104536300~1",
+			wantTags:  []string{},
+		},
+		{
+			name:      "actual: photo",
+			fName:     "PXL_20260517_104536~1",
+			pattern:   "photo",
+			wantVTime: parsedTimeNoMS,
+			wantDesc:  "PXL_20260517_104536~1",
+			wantTags:  []string{},
+		},
+		{
+			name:      "actual: signal-ms",
+			fName:     "2026-05-17-10-45-36-300~1",
+			pattern:   "signal-ms",
+			wantVTime: parsedTime,
+			wantDesc:  "2026-05-17-10-45-36-300~1",
+			wantTags:  []string{},
+		},
+		{
+			name:      "actual: signal",
+			fName:     "2026-05-17-10-45-36~1",
+			pattern:   "signal",
+			wantVTime: parsedTimeNoMS,
+			wantDesc:  "2026-05-17-10-45-36~1",
+			wantTags:  []string{},
+		},
+		{
+			name:      "actual: 8601-naked-ms",
+			fName:     "20260517104536300~1",
+			pattern:   "8601-naked-ms",
+			wantVTime: parsedTime,
+			wantDesc:  "20260517104536300~1",
+			wantTags:  []string{},
+		},
+		{
+			name:      "actual: 8601-naked",
+			fName:     "IMG_20260517104536~1",
+			pattern:   "8601-naked",
+			wantVTime: parsedTimeNoMS,
+			wantDesc:  "IMG_20260517104536~1",
+			wantTags:  []string{},
+		},
+		{
+			name:      "actual: 8601-short",
+			fName:     "2026-05-17-1045~1",
+			pattern:   "8601-short",
+			wantVTime: parsedTimeShort,
+			wantDesc:  "2026-05-17-1045~1",
+			wantTags:  []string{},
+		},
+		{
+			name:      "actual: 8601",
+			fName:     "2026-05-17-104536~1",
+			pattern:   "8601",
+			wantVTime: parsedTimeNoMS,
+			wantDesc:  "2026-05-17-104536~1",
+			wantTags:  []string{},
+		},
+		{
+			name:      "actual: 8601-ms",
+			fName:     "2026-05-17-104536300~1",
+			pattern:   "8601-ms",
+			wantVTime: parsedTime,
+			wantDesc:  "2026-05-17-104536300~1",
+			wantTags:  []string{},
+		},
+		{
+			name:      "actual: webkit-chrome",
+			fName:     "13423488336300000",
+			pattern:   "webkit-chrome",
+			wantVTime: parsedTime,
+			wantDesc:  "13423488336300000",
+			wantTags:  []string{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseFileTime(tt.file, tt.created, tt.modified)
+			file := &models.File{
+				Name:  tt.fName,
+				CTime: fixedCTime,
+				MTime: fixedMTime,
+			}
+
+			Parse(file, tt.pattern, tt.force, tt.descSep, tt.tagsSep)
+
+			if !file.VTime.Equal(tt.wantVTime) {
+				t.Errorf("\nVTime:     %v\nwantVTime: %v", file.VTime, tt.wantVTime)
+			}
+
+			if file.Desc != tt.wantDesc {
+				t.Errorf("\nDesc:     %q\nwantDesc: %q", file.Desc, tt.wantDesc)
+			}
+
+			if len(file.Tags) == 0 && len(tt.wantTags) == 0 {
+				return
+			}
+			if !reflect.DeepEqual(file.Tags, tt.wantTags) {
+				t.Errorf("\nTags:     %q\nwantTags: %q", file.Tags, tt.wantTags)
+			}
+		})
+	}
+}
+
+func TestExtract(t *testing.T) {
+	// Regex tested in models.
+
+	tests := []struct {
+		name        string
+		file        string
+		pattern     string
+		wantTime    time.Time
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "no match",
+			file:        "not-a-date-file.txt",
+			pattern:     "photo",
+			wantTime:    time.Time{},
+			wantErr:     true,
+			errContains: "No date pattern matched file",
+		},
+		{
+			name:     "webkit-chrome match",
+			file:     "13253932800000000.dat",
+			pattern:  "webkit-chrome",
+			wantTime: time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC),
+			wantErr:  false,
+		},
+		{
+			name:     "full pattern parse extraction",
+			file:     "20260517_112356123.jpg",
+			pattern:  "photo-ms",
+			wantTime: time.Date(2026, time.May, 17, 11, 23, 56, 123*int(time.Millisecond), time.UTC),
+			wantErr:  false,
+		},
+		{
+			name:     "partial pattern extraction",
+			file:     "2026-05-17",
+			pattern:  "voit",
+			wantTime: time.Date(2026, time.May, 17, 0, 0, 0, 0, time.UTC),
+			wantErr:  false,
+		},
+		{
+			name:        "no match",
+			file:        "anything.txt",
+			pattern:     "created",
+			wantTime:    time.Time{},
+			wantErr:     true,
+			errContains: "No date pattern matched file",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotTime, err := extract(tt.file, tt.pattern)
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseFileTime() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("\nError:   %v\nwantErr: %v", err, tt.wantErr)
+			}
+
+			if err != nil && tt.errContains != "" {
+				if !containsString(err.Error(), tt.errContains) {
+					t.Errorf("\nString: %q\nDoes not contain expected substring: %q", err.Error(), tt.errContains)
+				}
 				return
 			}
 
-			if !tt.wantErr {
-				if !tt.created && !tt.modified {
-					if !got.IsZero() {
-						t.Errorf("Expected zero time when both flags are false, got %v", got)
-					}
-				} else {
-					// Ensure UTC.
-					if got.Location() != time.UTC {
-						t.Errorf("Expected UTC location, got %v", got.Location())
-					}
+			if !gotTime.Equal(tt.wantTime) {
+				t.Errorf("\ngotTime:  %v\nwantTime: %v", gotTime, tt.wantTime)
+			}
+		})
+	}
+}
 
-					// cTime matches mTime for a new file.
-					if tt.modified && !tt.created {
-						if got.Unix() != expectedModTime.Unix() {
-							t.Errorf("Time mismatch. Got %v, want %v", got, expectedModTime)
-						}
-					}
-				}
+func containsString(str, substr string) bool {
+	return len(str) >= len(substr) && func() bool {
+		for i := 0; i <= len(str)-len(substr); i++ {
+			if str[i:i+len(substr)] == substr {
+				return true
+			}
+		}
+		return false
+	}()
+}
+
+func TestGenTargetName(t *testing.T) {
+	tests := []struct {
+		name      string
+		file      *models.File
+		pattern   string
+		lower     bool
+		strip     bool
+		noDesc    bool
+		dSep      string
+		tSep      string
+		wantDesc  string
+		wantExt   string
+		wantMatch bool
+	}{
+		// Santiy checks.
+		{
+			name: "sanity: sanitized format",
+			file: &models.File{
+				Source: "/tmp/2026-02-02T12.05.20.700 - beach vacation -- summer vacation beach.jpg",
+				VTime:  parsedTime,
+				Desc:   baseDesc,
+				Ext:    ".jpg",
+				Tags:   baseTags,
+			},
+			pattern:   "photo",
+			lower:     false,
+			strip:     false,
+			dSep:      " - ",
+			tSep:      " -- ",
+			wantDesc:  baseDesc,
+			wantExt:   ".jpg",
+			wantMatch: true,
+		},
+		{
+			name: "sanity: sanitized format [desc:' ', tag:' - ']",
+			file: &models.File{
+				Source: "/tmp/2026-02-02T12.05.20.700 beach vacation - summer vacation beach.jpg",
+				VTime:  parsedTime,
+				Desc:   baseDesc,
+				Ext:    ".jpg",
+				Tags:   baseTags,
+			},
+			pattern:   "photo",
+			lower:     false,
+			strip:     false,
+			dSep:      " ",
+			tSep:      " - ",
+			wantDesc:  baseDesc,
+			wantExt:   ".jpg",
+			wantMatch: true,
+		},
+		{
+			name: "sanity: no matches",
+			file: &models.File{
+				Source: "/tmp/not-a-date-file.jpg",
+				VTime:  parsedTime,
+				Desc:   "not-a-date-file",
+				Ext:    ".jpg",
+				Tags:   []string{},
+			},
+			pattern:   "photo",
+			lower:     false,
+			strip:     false,
+			dSep:      " - ",
+			tSep:      " -- ",
+			wantDesc:  "not-a-date-file",
+			wantExt:   ".jpg",
+			wantMatch: false,
+		},
+		{
+			name: "sanity: bare photo-ms",
+			file: &models.File{
+				Source: "/tmp/PXL_20260517_104536300.jpg",
+				VTime:  parsedTime,
+				Desc:   "PXL_20260517_104536300",
+				Ext:    ".jpg",
+				Tags:   []string{},
+			},
+			pattern:   "photo-ms",
+			lower:     false,
+			strip:     false,
+			dSep:      " - ",
+			tSep:      " -- ",
+			wantDesc:  "PXL_20260517_104536300",
+			wantExt:   ".jpg",
+			wantMatch: true,
+		},
+		// Lower.
+		{
+			name: "lower: desc and ext",
+			file: &models.File{
+				Source: "/tmp/2026-02-02T12.05.20.700 Beach VACATION - summer vacation beach.JPG",
+				VTime:  parsedTime,
+				Desc:   baseDesc,
+				Ext:    ".jpg",
+				Tags:   baseTags,
+			},
+			pattern:   "photo",
+			lower:     true,
+			strip:     false,
+			dSep:      " ",
+			tSep:      " - ",
+			wantDesc:  baseDesc,
+			wantExt:   ".jpg",
+			wantMatch: true,
+		},
+		// Strip.
+		{
+			name: "strip: bare photo-ms",
+			file: &models.File{
+				Source: "/tmp/PXL_20260517_104536300.jpg",
+				VTime:  parsedTime,
+				Desc:   "PXL_20260517_104536300",
+				Ext:    ".jpg",
+				Tags:   []string{},
+			},
+			pattern:   "photo-ms",
+			lower:     false,
+			strip:     true,
+			dSep:      " - ",
+			tSep:      " -- ",
+			wantDesc:  "PXL_",
+			wantExt:   ".jpg",
+			wantMatch: true,
+		},
+		{
+			name: "strip: bare photo-ms [prefix and suffix]",
+			file: &models.File{
+				Source: "/tmp/PXL_20260517_104536300~1.jpg",
+				VTime:  parsedTime,
+				Desc:   "PXL_20260517_104536300~1",
+				Ext:    ".jpg",
+				Tags:   []string{},
+			},
+			pattern:   "photo-ms",
+			lower:     false,
+			strip:     true,
+			dSep:      " - ",
+			tSep:      " -- ",
+			wantDesc:  "PXL_~1",
+			wantExt:   ".jpg",
+			wantMatch: true,
+		},
+		{
+			name: "strip: no match",
+			file: &models.File{
+				Source: "/tmp/PXL_20260517_104536300.jpg",
+				VTime:  parsedTime,
+				Desc:   "PXL_20260517_104536300",
+				Ext:    ".jpg",
+				Tags:   []string{},
+			},
+			pattern:   "signal",
+			lower:     false,
+			strip:     true,
+			dSep:      " - ",
+			tSep:      " -- ",
+			wantDesc:  "PXL_20260517_104536300",
+			wantExt:   ".jpg",
+			wantMatch: false,
+		},
+		{
+			name: "strip: bare photo-ms [prefix, suffix, lower]",
+			file: &models.File{
+				Source: "/tmp/PXL_20260517_104536300~1.jpg",
+				VTime:  parsedTime,
+				Desc:   "PXL_20260517_104536300~1",
+				Ext:    ".jpg",
+				Tags:   []string{},
+			},
+			pattern:   "photo-ms",
+			lower:     true,
+			strip:     true,
+			dSep:      " - ",
+			tSep:      " -- ",
+			wantDesc:  "pxl_~1",
+			wantExt:   ".jpg",
+			wantMatch: true,
+		},
+		{
+			name: "strip: bare photo-ms [prefix, suffix, lower, nodesc]",
+			file: &models.File{
+				Source: "/tmp/PXL_20260517_104536300~1.jpg",
+				VTime:  parsedTime,
+				Desc:   "",
+				Ext:    ".jpg",
+				Tags:   []string{},
+			},
+			pattern:   "photo-ms",
+			lower:     true,
+			strip:     true,
+			noDesc:    true,
+			dSep:      " - ",
+			tSep:      " -- ",
+			wantDesc:  "",
+			wantExt:   ".jpg",
+			wantMatch: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			baseDir, err := filepath.Abs("/tmp")
+			if err != nil {
+				t.Fatalf("Failed to setup test base dir: %v", err)
+			}
+
+			tagsStr := strings.Join(tt.file.Tags, " ")
+			expectedFileName := formattedTime + tt.dSep + tt.wantDesc + tt.tSep + tagsStr + tt.wantExt
+			expectedTarget := filepath.Join(baseDir, expectedFileName)
+
+			GenTargetName(tt.file, tt.pattern, tt.lower, tt.strip, tt.noDesc, tt.dSep, tt.tSep)
+
+			if tt.file.Target != expectedTarget {
+				t.Errorf("\nGot:  %s\nWant: %s", tt.file.Target, expectedTarget)
 			}
 		})
 	}
