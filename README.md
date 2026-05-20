@@ -4,7 +4,7 @@ Voit file renamer.
 Rename files using [Karl Voit's System][h] based on datetime in filenames.
 
 Originally built as a pre-processor for Digikam imports to avoid regex hell in
-digikam's renamer tool; this can be applied to any file.
+digikam; this can be applied to any file.
 
 ## Build
 
@@ -38,8 +38,8 @@ voit rename --lower --yes --8601-naked -s /my/photos
 > 2024-02-04T12.23.32.362 - 20240204122332362 -- .jpg
 
 # Use alternative separators.
-voit rename --desc-sep " " --tag-sep "=" --photo-ms --no-desc -s /my/photos/2024-02-04T12.23.32.362 PXL_20240204_122332362 = tacos.jpg
-> 2024-02-04T12.23.32.362  = tacos.jpg
+voit rename --desc-sep " - " --tag-sep "=" --photo-ms --no-desc --no-tags -s /my/photos/2024-02-04T12.23.32.362 - PXL_20240204_122332362 = tacos.jpg
+> 2024-02-04T12.23.32.362.jpg
 ```
 
 ## Config
@@ -50,11 +50,25 @@ Values in this config are overridden by flags, with the exception of
 ``` toml
 # ~/.config/voit.toml
 
-Lower = true
-Directory = "/tmp/override"
+# Only define options that should be set.
 
+# Global Options
+Yes       = true
+Verbose   = true
+TagSep    = " = "
+DescSep   = " - "
+SpanSep   = "--"
+
+# Rename Options
+[Rename]
 # Setting pattern ALWAYS overrides Pattern flag.
-Pattern = "ns"
+Pattern       = 'photo-ms'
+Lower         = true
+Strip         = false
+NoDesc        = false
+NoTags        = false
+Overwrite     = true
+PreferPattern = true
 ```
 
 ## Issues
