@@ -25,18 +25,22 @@ func Rename(opts models.Opts) {
 
 	selectTargets(files, opts)
 	count := DisplayPending(os.Stdout, files)
-	if opts.Rename.Overwrite {
-		fmt.Printf("\nProposed changes (OVERWRITE ENABLED): %d file(s).\n", count)
+	if count != 0 {
+		if opts.Rename.Overwrite {
+			fmt.Printf("\nProposed changes (OVERWRITE ENABLED): %d file(s).\n", count)
+		} else {
+			fmt.Printf("\nProposed changes: %d file(s).\n", count)
+		}
+
+		if !opts.Yes && !Confirm(os.Stdin, os.Stdout) {
+			fmt.Println("Operation aborted by user.")
+			os.Exit(0)
+		}
+
+		ExecuteRename(os.Stdout, files, opts.Rename.Overwrite, opts.Verbose)
 	} else {
-		fmt.Printf("\nProposed changes: %d file(s).\n", count)
+		fmt.Println("No files matched proposed changes.")
 	}
-
-	if !opts.Yes && !Confirm(os.Stdin, os.Stdout) {
-		fmt.Println("Operation aborted by user.")
-		os.Exit(0)
-	}
-
-	ExecuteRename(os.Stdout, files, opts.Rename.Overwrite, opts.Verbose)
 }
 
 func ExecuteRename(w io.Writer, files []models.File, overwrite bool, verbose bool) {
@@ -115,5 +119,5 @@ func resolveFSCollisions(w io.Writer, path string, verbose bool) string {
 
 func timeRename(w io.Writer, start time.Time, count int) {
 	elapsed := time.Since(start)
-	fmt.Fprintf(w, "Renamed %d files in %s.", count, elapsed)
+	fmt.Fprintf(w, "Renamed %d files in %s.\n", count, elapsed)
 }

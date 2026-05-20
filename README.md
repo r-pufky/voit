@@ -6,6 +6,11 @@ Rename files using [Karl Voit's System][h] based on datetime in filenames.
 Originally built as a pre-processor for Digikam imports to avoid regex hell in
 digikam; this can be applied to any file.
 
+> [!WARNING]
+> Not responsible for data loss. Always have backups and verify what is proposed
+> before executing command. Though thoroughly tested and used, there still may be
+> bugs that cause data loss.
+
 ## Build
 
 ``` bash
@@ -18,27 +23,25 @@ make  # manually build development with: go build -o voit
 ## Run
 
 ``` bash
-# Match default regex and rename matches.
+# Rename typical camera photos, one with existing tags
 voit rename --photo-ms -s /my/photos
-> 2019-06-23T23.42.01.742 - PXL-20190623-234201742 -- .jpg
-> 2024-02-04T12.23.32.362 - PXL_20240204_122332362 -- .jpg
+> 2019-06-23T23.42.01.742 PXL-20190623-234201742.jpg
+> 2024-02-04T12.23.32.362 PXL_20240204_122332362 -- fruit.jpg
 
+# Individual files may be targetted too.
 voit rename --photo-ms -s /my/photos/PXL_20240204_122332362.jpg
-> 2024-02-04T12.23.32.362 - PXL_20240204_122332362 -- .jpg
+> 2024-02-04T12.23.32.362 PXL_20240204_122332362.jpg
 
-voit rename --strip -s /my/photos/PXL_20240204_122332362.jpg
-> 2024-02-04T12.23.32.362 - PXL_ -- .jpg
+# Strip existing date pattern from description.
+voit rename --photo-ms --strip -s /my/photos/PXL_20240204_122332362.jpg
+> 2024-02-04T12.23.32.362 PXL_.jpg
 
+# Remove description.
 voit rename --no-desc -s /my/photos/PXL_20240204_122332362.jpg
-> 2024-02-04T12.23.32.362 -  -- .jpg
+> 2024-02-04T12.23.32.362.jpg
 
-# Match using YYYYMMDDHHMMSS, lower case, and auto accept changes.
-voit rename --lower --yes --8601-naked -s /my/photos
-> 2019-06-23T23.42.01.742 - 20190623234201742 -- .jpg
-> 2024-02-04T12.23.32.362 - 20240204122332362 -- .jpg
-
-# Use alternative separators.
-voit rename --desc-sep " - " --tag-sep "=" --photo-ms --no-desc --no-tags -s /my/photos/2024-02-04T12.23.32.362 - PXL_20240204_122332362 = tacos.jpg
+# Use alternative separators, remove description and tags.
+voit rename --desc-sep " - " --tag-sep " = " --photo-ms --no-desc --no-tags -s /my/photos/2024-02-04T12.23.32.362 - PXL_20240204_122332362 = tacos.jpg
 > 2024-02-04T12.23.32.362.jpg
 ```
 

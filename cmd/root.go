@@ -38,7 +38,8 @@ var rootCmd = &cobra.Command{
 		"Read about structure and PhD thesis:\n" +
 		"  https://karl-voit.at/folder-hierarchy\n" +
 		"  https://karl-voit.at/tagstore/en/papers.shtml\n\n" +
-		"Set default options in: ~/.config/voit.toml\n",
+		"Source: https://github.com/r-pufky/voit\n\n" +
+		"Set default options in: ~/.config/voit.toml (see README.md)\n",
 	Run: func(cmd *cobra.Command, args []string) {
 		if opts.Build {
 			fmt.Printf("Version: %s\n", Version)
