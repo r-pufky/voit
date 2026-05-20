@@ -881,6 +881,24 @@ func TestGenTargetName(t *testing.T) {
 			wantName:  "/tmp/2026-02-02T12.05.20.700--2027-06-18T11.46.37.400 - beach vacation.jpg",
 			wantMatch: true,
 		},
+		{
+			name: "vtimespan: zero time not matched",
+			file: &models.File{
+				Source:    "/tmp/0001-01-01T00.00.00.000 - beach vacation -- summer vacation beach.jpg",
+				VTime:     time.Time{},
+				VTimeSpan: time.Time{},
+				Desc:      baseDesc,
+				Ext:       ".jpg",
+				Tags:      baseTags,
+			},
+			pattern:   "photo",
+			dSep:      " - ",
+			tSep:      " -- ",
+			sSep:      "--",
+			noTags:    true,
+			wantName:  "/tmp/0001-01-01T00.00.00.000 - beach vacation.jpg",
+			wantMatch: false,
+		},
 	}
 
 	for _, tt := range tests {
