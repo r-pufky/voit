@@ -214,7 +214,6 @@ func GenTargetName(file *models.File, pattern string, lower bool, strip bool, No
 		ext = strings.ToLower(ext)
 	}
 
-	// TODO - test this with zero time, matched explicitly. see existing tests.
 	if !file.VTime.IsZero() && models.Patterns[pattern].MatchString(desc) {
 		file.Matched = true
 	}

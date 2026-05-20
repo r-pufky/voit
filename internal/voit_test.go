@@ -200,7 +200,6 @@ func TestParse(t *testing.T) {
 			wantDesc:  "",
 			wantTags:  baseTags,
 		},
-		// TODO - tests which return default time; should be marked as UNMODIFIED and not changed as no date found?
 		{
 			name:      "desc: missing description [desc: '', separators overlap]",
 			fName:     "2026-02-02T12.05.20.700 - -- summer vacation beach",
@@ -666,7 +665,6 @@ func TestGenTargetName(t *testing.T) {
 			wantName:  "/tmp/0001-01-01T00.00.00.000 beach vacation - summer vacation beach.jpg",
 			wantMatch: false, // Filename uses zero time, but not marked as matched.
 		},
-		// TODO - add these test cases in for parsing tags, desc, vtime.
 		{
 			name: "sanity: no matches",
 			file: &models.File{
