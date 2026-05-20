@@ -21,27 +21,23 @@ make  # manually build development with: go build -o voit
 ```
 
 ## Run
+See command help for full list of options.
 
 ``` bash
-# Rename typical camera photos, one with existing tags
-voit rename --photo-ms -s /my/photos
+voit rename -h
+
+# Rename typical camera photos, one with existing tags in current directory.
+voit rename --photo-ms
 > 2019-06-23T23.42.01.742 PXL-20190623-234201742.jpg
 > 2024-02-04T12.23.32.362 PXL_20240204_122332362 -- fruit.jpg
 
-# Individual files may be targetted too.
+# Individual files and directories may be targeted too.
 voit rename --photo-ms -s /my/photos/PXL_20240204_122332362.jpg
 > 2024-02-04T12.23.32.362 PXL_20240204_122332362.jpg
-
-# Strip existing date pattern from description.
-voit rename --photo-ms --strip -s /my/photos/PXL_20240204_122332362.jpg
-> 2024-02-04T12.23.32.362 PXL_.jpg
+voit rename --photo-ms -s /my/other/photos
 
 # Remove description.
 voit rename --no-desc -s /my/photos/PXL_20240204_122332362.jpg
-> 2024-02-04T12.23.32.362.jpg
-
-# Use alternative separators, remove description and tags.
-voit rename --desc-sep " - " --tag-sep " = " --photo-ms --no-desc --no-tags -s /my/photos/2024-02-04T12.23.32.362 - PXL_20240204_122332362 = tacos.jpg
 > 2024-02-04T12.23.32.362.jpg
 ```
 
