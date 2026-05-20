@@ -176,7 +176,6 @@ func VTimeSpan(name string, pattern string, sSep string) (time.Time, time.Time, 
 
 	start, end, found := strings.Cut(name, sSep)
 
-	fmt.Printf("\ns: %q\ne: %q", start, end)
 	if !found {
 		return time.Time{}, time.Time{}, fmt.Errorf("No date span matched: %s", name)
 	}

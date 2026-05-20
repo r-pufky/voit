@@ -23,33 +23,7 @@ func Rename(opts models.Opts) {
 		os.Exit(0)
 	}
 
-	collisions := make(map[string]int)
-	for i := range files {
-		Parse(&files[i], opts.Rename.Pattern, opts.Rename.PreferPattern, opts.DescSep, opts.TagSep, opts.SpanSep)
-		GenTargetName(&files[i], opts.Rename.Pattern, opts.Rename.Lower, opts.Rename.Strip, opts.Rename.NoDesc, opts.Rename.NoTags, opts.DescSep, opts.TagSep, opts.SpanSep)
-
-		if _, exists := collisions[files[i].Target]; !exists {
-			collisions[files[i].Target] = 1
-			continue // New target, move on to next file.
-		}
-
-		ext := filepath.Ext(files[i].Target)
-		base := strings.TrimSuffix(files[i].Target, ext)
-
-		for {
-			// Resolve collision with total count and verify new Target valid.
-			count := collisions[files[i].Target]
-			collisions[files[i].Target]++
-			newTarget := fmt.Sprintf("%s_%d%s", base, count, ext)
-
-			if _, collided := collisions[newTarget]; !collided {
-				files[i].Target = newTarget
-				collisions[newTarget] = 1
-				break
-			}
-		}
-	}
-
+	selectTargets(files, opts)
 	count := DisplayPending(os.Stdout, files)
 	if opts.Rename.Overwrite {
 		fmt.Printf("\nProposed changes (OVERWRITE ENABLED): %d file(s).\n", count)
@@ -84,6 +58,39 @@ func ExecuteRename(w io.Writer, files []models.File, overwrite bool, verbose boo
 				fmt.Fprintf(w, "Error renaming %s to %s: %v\n", file.Source, target, err)
 			} else if verbose {
 				fmt.Fprintf(w, "Renamed: %s%s ➔ %s%s\n", file.Source, file.Ext, target, file.Ext)
+			}
+		}
+	}
+}
+
+// Select files based on targeting options. Duplicate targets are automatically
+// resolved. Selected files are marked as File.Matched.
+func selectTargets(files []models.File, opts models.Opts) {
+	collisions := make(map[string]int)
+	for i := range files {
+		Parse(&files[i], opts.Rename.Pattern, opts.Rename.PreferPattern, opts.DescSep, opts.TagSep, opts.SpanSep)
+		GenTargetName(&files[i], opts.Rename.Pattern, opts.Rename.Lower, opts.Rename.Strip, opts.Rename.NoDesc, opts.Rename.NoTags, opts.DescSep, opts.TagSep, opts.SpanSep)
+
+		target := files[i].Target
+
+		if _, exists := collisions[target]; !exists {
+			collisions[target] = 1
+			continue // New target, move on to next file.
+		}
+
+		ext := filepath.Ext(target)
+		base := strings.TrimSuffix(target, ext)
+
+		for {
+			// Resolve collision with total count and verify new target valid.
+			count := collisions[target]
+			collisions[target]++
+			newTarget := fmt.Sprintf("%s_%d%s", base, count, ext)
+
+			if _, collided := collisions[newTarget]; !collided {
+				files[i].Target = newTarget
+				collisions[newTarget] = 1
+				break
 			}
 		}
 	}
