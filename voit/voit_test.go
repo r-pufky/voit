@@ -1,11 +1,9 @@
-package internal
+package voit
 
 import (
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/r-pufky/voit/models"
 )
 
 var (
@@ -387,7 +385,7 @@ func TestParse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			file := &models.File{
+			file := &File{
 				Name:  tt.fName,
 				CTime: fixedCTime,
 				MTime: fixedMTime,
@@ -604,7 +602,7 @@ func TestVTimeSpan(t *testing.T) {
 func TestGenTargetName(t *testing.T) {
 	tests := []struct {
 		name      string
-		file      *models.File
+		file      *File
 		pattern   string
 		lower     bool
 		strip     bool
@@ -619,7 +617,7 @@ func TestGenTargetName(t *testing.T) {
 		// Santiy checks.
 		{
 			name: "sanity: sanitized format",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/2026-02-02T12.05.20.700 - beach vacation -- summer vacation beach.jpg",
 				VTime:  parsedTime,
 				Desc:   baseDesc,
@@ -635,7 +633,7 @@ func TestGenTargetName(t *testing.T) {
 		},
 		{
 			name: "sanity: sanitized format [desc:' ', tag:' - ']",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/2026-02-02T12.05.20.700 beach vacation - summer vacation beach.jpg",
 				VTime:  parsedTime,
 				Desc:   baseDesc,
@@ -651,7 +649,7 @@ func TestGenTargetName(t *testing.T) {
 		},
 		{
 			name: "sanity: no VTime set",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/beach vacation - summer vacation beach.jpg",
 				VTime:  time.Time{},
 				Desc:   baseDesc,
@@ -667,7 +665,7 @@ func TestGenTargetName(t *testing.T) {
 		},
 		{
 			name: "sanity: no matches",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/not-a-date-file.jpg",
 				VTime:  parsedTime,
 				Desc:   "not-a-date-file",
@@ -683,7 +681,7 @@ func TestGenTargetName(t *testing.T) {
 		},
 		{
 			name: "sanity: bare photo-ms",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/PXL_20260517_104536300.jpg",
 				VTime:  parsedTime,
 				Desc:   "PXL_20260517_104536300",
@@ -700,7 +698,7 @@ func TestGenTargetName(t *testing.T) {
 		// Lower.
 		{
 			name: "lower: desc and ext",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/2026-02-02T12.05.20.700 Beach VACATION - summer vacation beach.JPG",
 				VTime:  parsedTime,
 				Desc:   baseDesc,
@@ -718,7 +716,7 @@ func TestGenTargetName(t *testing.T) {
 		// Strip.
 		{
 			name: "strip: bare photo-ms",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/PXL_20260517_104536300.jpg",
 				VTime:  parsedTime,
 				Desc:   "PXL_20260517_104536300",
@@ -735,7 +733,7 @@ func TestGenTargetName(t *testing.T) {
 		},
 		{
 			name: "strip: bare photo-ms [prefix and suffix]",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/PXL_20260517_104536300~1.jpg",
 				VTime:  parsedTime,
 				Desc:   "PXL_20260517_104536300~1",
@@ -752,7 +750,7 @@ func TestGenTargetName(t *testing.T) {
 		},
 		{
 			name: "strip: no match",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/PXL_20260517_104536300.jpg",
 				VTime:  parsedTime,
 				Desc:   "PXL_20260517_104536300",
@@ -769,7 +767,7 @@ func TestGenTargetName(t *testing.T) {
 		},
 		{
 			name: "strip: bare photo-ms [prefix, suffix, lower]",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/PXL_20260517_104536300~1.jpg",
 				VTime:  parsedTime,
 				Desc:   "PXL_20260517_104536300~1",
@@ -788,7 +786,7 @@ func TestGenTargetName(t *testing.T) {
 		// NoTags.
 		{
 			name: "notags: sanitized format",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/2026-02-02T12.05.20.700 - beach vacation -- summer vacation beach.jpg",
 				VTime:  parsedTime,
 				Desc:   baseDesc,
@@ -806,7 +804,7 @@ func TestGenTargetName(t *testing.T) {
 		// NoDesc
 		{
 			name: "nodesc: sanitized format",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/2026-02-02T12.05.20.700 - beach vacation -- summer vacation beach.jpg",
 				VTime:  parsedTime,
 				Desc:   baseDesc,
@@ -824,7 +822,7 @@ func TestGenTargetName(t *testing.T) {
 		// All options.
 		{
 			name: "all: sanitized format [prefix, suffix, lower, nodesc, notags]",
-			file: &models.File{
+			file: &File{
 				Source: "/tmp/2026-02-02T12.05.20.700 - PXL_20260517_104536300~1 -- summer vacation beach.jpg",
 				VTime:  parsedTime,
 				Desc:   "",
@@ -845,7 +843,7 @@ func TestGenTargetName(t *testing.T) {
 		// VTimeSpan.
 		{
 			name: "vtimespan: sanitized format",
-			file: &models.File{
+			file: &File{
 				Source:    "/tmp/2026-02-02T12.05.20.700--2027-06-18T11.46.37.400 - beach vacation -- summer vacation beach.jpg",
 				VTime:     voitTime,
 				VTimeSpan: voitTimeSpan,
@@ -863,7 +861,7 @@ func TestGenTargetName(t *testing.T) {
 		},
 		{
 			name: "vtimespan: sanitized format",
-			file: &models.File{
+			file: &File{
 				Source:    "/tmp/2026-02-02T12.05.20.700--2027-06-18T11.46.37.400 - beach vacation -- summer vacation beach.jpg",
 				VTime:     voitTime,
 				VTimeSpan: voitTimeSpan,
@@ -881,7 +879,7 @@ func TestGenTargetName(t *testing.T) {
 		},
 		{
 			name: "vtimespan: zero time not matched",
-			file: &models.File{
+			file: &File{
 				Source:    "/tmp/0001-01-01T00.00.00.000 - beach vacation -- summer vacation beach.jpg",
 				VTime:     time.Time{},
 				VTimeSpan: time.Time{},

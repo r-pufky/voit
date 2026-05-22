@@ -22,7 +22,7 @@ Voit 8601 Regex Breakdown (YYYY-MM-DDTHH.MM.SS.SSS):
 \s*$           - Ignore trailing whitespace
 */
 
-package models
+package voit
 
 import (
 	"regexp"

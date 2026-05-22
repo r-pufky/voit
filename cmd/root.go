@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/r-pufky/voit/internal"
 	"github.com/r-pufky/voit/models"
+	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
 )
 
@@ -19,9 +19,9 @@ func init() {
 	rootCmd.PersistentFlags().SortFlags = false
 
 	rootCmd.PersistentFlags().StringVarP(&opts.AbsSource, "source", "s", "", "Directory containing files or File to rename (default: current directory)")
-	rootCmd.PersistentFlags().StringVarP(&opts.TagSep, "tag-sep", "", internal.DefaultTagsSep, "Tag separator")
-	rootCmd.PersistentFlags().StringVarP(&opts.DescSep, "desc-sep", "", internal.DefaultDescSep, "Description separator")
-	rootCmd.PersistentFlags().StringVarP(&opts.SpanSep, "span-sep", "", internal.DefaultSpanSep, "VTIME date span separator")
+	rootCmd.PersistentFlags().StringVarP(&opts.TagSep, "tag-sep", "", voit.DefaultTagsSep, "Tag separator")
+	rootCmd.PersistentFlags().StringVarP(&opts.DescSep, "desc-sep", "", voit.DefaultDescSep, "Description separator")
+	rootCmd.PersistentFlags().StringVarP(&opts.SpanSep, "span-sep", "", voit.DefaultSpanSep, "VTIME date span separator")
 	rootCmd.PersistentFlags().BoolVarP(&opts.Verbose, "verbose", "v", false, "Show verbose information")
 	rootCmd.PersistentFlags().BoolVarP(&opts.Yes, "yes", "y", false, "Automatically confirm operations")
 

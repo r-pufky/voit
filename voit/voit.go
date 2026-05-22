@@ -25,7 +25,7 @@ tags: Tags; lowercase, space separated.
 
 https://karl-voit.at/folder-hierarchy
 */
-package internal
+package voit
 
 import (
 	"fmt"
@@ -35,8 +35,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/r-pufky/voit/models"
 )
 
 const (
@@ -53,7 +51,7 @@ const (
 //  3. file.VTime update with parsed pattern/VTIME or time.Time{} if not found.
 //     If prefer enabled an existing VTIME will be overwritten with found
 //     pattern time when different.
-func Parse(file *models.File, pattern string, prefer bool, dSep string, tSep string, sSep string) {
+func Parse(file *File, pattern string, prefer bool, dSep string, tSep string, sSep string) {
 	if len(dSep) == 0 {
 		dSep = DefaultDescSep
 	}
@@ -133,7 +131,7 @@ func Parse(file *models.File, pattern string, prefer bool, dSep string, tSep str
 
 // Extract time object from given string and filter.
 func extract(name string, pattern string) (time.Time, error) {
-	match := models.Patterns[pattern].FindStringSubmatch(name)
+	match := Patterns[pattern].FindStringSubmatch(name)
 	if match == nil {
 		return time.Time{}, fmt.Errorf("No date pattern matched: %s", name)
 	}
@@ -195,7 +193,7 @@ func VTimeSpan(name string, pattern string, sSep string) (time.Time, time.Time, 
 // extension and description. Strip removes matched pattern from description.
 // Files are only set to Matched if pattern string is found, and VTime is not
 // Zero.
-func GenTargetName(file *models.File, pattern string, lower bool, strip bool, NoDesc bool, NoTags bool, dSep string, tSep string, sSep string) {
+func GenTargetName(file *File, pattern string, lower bool, strip bool, NoDesc bool, NoTags bool, dSep string, tSep string, sSep string) {
 	source, err := filepath.Abs(filepath.Dir(file.Source))
 	if err != nil {
 		log.Fatalf("Failed to set absolute path: %v", err)
@@ -214,13 +212,13 @@ func GenTargetName(file *models.File, pattern string, lower bool, strip bool, No
 		ext = strings.ToLower(ext)
 	}
 
-	if !file.VTime.IsZero() && models.Patterns[pattern].MatchString(desc) {
+	if !file.VTime.IsZero() && Patterns[pattern].MatchString(desc) {
 		file.Matched = true
 	}
 
 	if strip && file.Matched {
 		// Return all non-regex matched strings, removing empty strings, and join them.
-		pieces := models.Patterns[pattern].Split(desc, -1)
+		pieces := Patterns[pattern].Split(desc, -1)
 		desc = strings.Join(slices.DeleteFunc(pieces, func(s string) bool { return s == "" }), "")
 	}
 

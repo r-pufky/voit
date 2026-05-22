@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/r-pufky/voit/models"
+	"github.com/r-pufky/voit/voit"
 )
 
 func TestDisplayPending(t *testing.T) {
-	files := []models.File{
+	files := []voit.File{
 		{Source: "img1.jpg", Matched: true, Width: 8, Target: "2023-01-01.jpg"},
 		{Source: "a.jpg", Matched: true, Width: 5, Target: "2023-01-02.jpg"},
 	}

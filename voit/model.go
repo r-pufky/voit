@@ -26,7 +26,7 @@ where
 https://karl-voit.at/folder-hierarchy
 */
 
-package models
+package voit
 
 import "time"
 

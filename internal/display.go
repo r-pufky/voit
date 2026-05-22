@@ -8,16 +8,16 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/r-pufky/voit/models"
+	"github.com/r-pufky/voit/voit"
 )
 
-func DisplayPending(out io.Writer, files []models.File) int {
+func DisplayPending(out io.Writer, files []voit.File) int {
 	if len(files) == 0 {
 		return 0
 	}
 	c := 0
 
-	maxJob := slices.MaxFunc(files, func(a, b models.File) int {
+	maxJob := slices.MaxFunc(files, func(a, b voit.File) int {
 		return cmp.Compare(a.Width, b.Width)
 	})
 

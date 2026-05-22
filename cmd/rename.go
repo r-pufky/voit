@@ -9,7 +9,7 @@ import (
 	"slices"
 
 	"github.com/r-pufky/voit/internal"
-	"github.com/r-pufky/voit/models"
+	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -30,7 +30,7 @@ var (
 			loadUserConfig()
 
 			// Resolve all patterns to pattern variable using option name.
-			for _, opt := range slices.Collect(maps.Keys(models.Patterns)) {
+			for _, opt := range slices.Collect(maps.Keys(voit.Patterns)) {
 				if cmd.Flags().Changed(opt) {
 					opts.Rename.Pattern = opt
 					break
@@ -86,7 +86,7 @@ func init() {
 	renameCmd.Flags().Bool("voit-span", false, "{VOIT}--{VOIT}          │ Voit Scheme date span")
 	renameCmd.Flags().Bool("created", false, "[ctime]                 │ Use file creation date")
 	renameCmd.Flags().Bool("modified", false, "[modtime]               │ Use file modification date")
-	renameCmd.MarkFlagsMutuallyExclusive(slices.Collect(maps.Keys(models.Patterns))...)
+	renameCmd.MarkFlagsMutuallyExclusive(slices.Collect(maps.Keys(voit.Patterns))...)
 
 	renameCmd.Flags().BoolVarP(&opts.Rename.Lower, "lower", "l", false, "Lowercase description and extension")
 	renameCmd.Flags().BoolVarP(&opts.Rename.Strip, "strip", "", false, "Strip matched pattern from description")

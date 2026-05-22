@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/r-pufky/voit/models"
+	"github.com/r-pufky/voit/voit"
 )
 
 func Rename(opts models.Opts) {
@@ -43,7 +44,7 @@ func Rename(opts models.Opts) {
 	}
 }
 
-func ExecuteRename(w io.Writer, files []models.File, overwrite bool, verbose bool) {
+func ExecuteRename(w io.Writer, files []voit.File, overwrite bool, verbose bool) {
 	defer timeRename(w, time.Now(), len(files))
 	for _, file := range files {
 		if file.Matched {
@@ -69,11 +70,11 @@ func ExecuteRename(w io.Writer, files []models.File, overwrite bool, verbose boo
 
 // Select files based on targeting options. Duplicate targets are automatically
 // resolved. Selected files are marked as File.Matched.
-func selectTargets(files []models.File, opts models.Opts) {
+func selectTargets(files []voit.File, opts models.Opts) {
 	collisions := make(map[string]int)
 	for i := range files {
-		Parse(&files[i], opts.Rename.Pattern, opts.Rename.PreferPattern, opts.DescSep, opts.TagSep, opts.SpanSep)
-		GenTargetName(&files[i], opts.Rename.Pattern, opts.Rename.Lower, opts.Rename.Strip, opts.Rename.NoDesc, opts.Rename.NoTags, opts.DescSep, opts.TagSep, opts.SpanSep)
+		voit.Parse(&files[i], opts.Rename.Pattern, opts.Rename.PreferPattern, opts.DescSep, opts.TagSep, opts.SpanSep)
+		voit.GenTargetName(&files[i], opts.Rename.Pattern, opts.Rename.Lower, opts.Rename.Strip, opts.Rename.NoDesc, opts.Rename.NoTags, opts.DescSep, opts.TagSep, opts.SpanSep)
 
 		target := files[i].Target
 

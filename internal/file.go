@@ -11,13 +11,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/r-pufky/voit/models"
+	"github.com/r-pufky/voit/voit"
 )
 
 // Scan provided file or directory path for files non-recursively. File
 // metadata is parsed with no changes to loaded data.
-func Scan(f string) ([]models.File, error) {
-	var files []models.File
+func Scan(f string) ([]voit.File, error) {
+	var files []voit.File
 
 	stat, err := os.Stat(f)
 	if err != nil {
@@ -77,7 +77,7 @@ func SplitMultiExt(f string) (string, string) {
 		return name, "" // Directory.
 	}
 
-	for _, ext := range models.MultiExts {
+	for _, ext := range voit.MultiExts {
 		if strings.HasSuffix(name, ext) {
 			name := strings.TrimSuffix(name, ext)
 			return name, ext
@@ -93,7 +93,7 @@ func SplitMultiExt(f string) (string, string) {
 }
 
 // Return new File struct based on given source path.
-func new(f string) (*models.File, error) {
+func new(f string) (*voit.File, error) {
 	source, err := filepath.Abs(f)
 	if err != nil {
 		log.Fatalf("Failed to set absolute path: %v", err)
@@ -117,7 +117,7 @@ func new(f string) (*models.File, error) {
 		}
 	}
 
-	return &models.File{
+	return &voit.File{
 		CTime: time.Date(
 			cTime.Year(),
 			cTime.Month(),

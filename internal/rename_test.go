@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/r-pufky/voit/models"
+	"github.com/r-pufky/voit/voit"
 )
 
 func TestExecuteRename(t *testing.T) {
@@ -17,7 +18,7 @@ func TestExecuteRename(t *testing.T) {
 	dst := filepath.Join(tempDir, "dest.txt")
 	os.WriteFile(src, []byte("hello"), 0644)
 
-	files := []models.File{
+	files := []voit.File{
 		{
 			Source:  src,
 			Matched: true,
@@ -45,7 +46,7 @@ func TestExecuteRenameFSCollision(t *testing.T) {
 
 	expectedDst := filepath.Join(tempDir, "dest_1.txt")
 
-	files := []models.File{
+	files := []voit.File{
 		{
 			Source:  src,
 			Matched: true,
@@ -77,12 +78,12 @@ func TestSelectTargets(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		input []models.File
+		input []voit.File
 		want  []string
 	}{
 		{
 			name: "sanity: no collisions",
-			input: []models.File{
+			input: []voit.File{
 				{
 					CTime:  voitTime,
 					MTime:  voitTime,
@@ -107,7 +108,7 @@ func TestSelectTargets(t *testing.T) {
 		},
 		{
 			name: "sanity: single file collision",
-			input: []models.File{
+			input: []voit.File{
 				{
 					CTime:  voitTime,
 					MTime:  voitTime,
@@ -132,7 +133,7 @@ func TestSelectTargets(t *testing.T) {
 		},
 		{
 			name: "sanity: cascading collision",
-			input: []models.File{
+			input: []voit.File{
 				{
 					CTime:  voitTime,
 					MTime:  voitTime,
