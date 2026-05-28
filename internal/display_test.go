@@ -9,18 +9,35 @@ import (
 )
 
 func TestDisplayPending(t *testing.T) {
-	files := []voit.File{
-		{Source: "img1.jpg", Matched: true, Width: 8, Target: "2023-01-01.jpg"},
-		{Source: "a.jpg", Matched: true, Width: 5, Target: "2023-01-02.jpg"},
+	c := &voit.Config{}
+	files := []*voit.Voit{
+		{
+			File: voit.File{
+				Source: "img1.jpg",
+				Ext:    ".jpg",
+				Width:  8,
+			},
+			Target:  "2023-01-01T12.00.00.000.jpg",
+			Matched: true,
+		},
+		{
+			File: voit.File{
+				Source: "a.jpg",
+				Ext:    ".jpg",
+				Width:  5,
+			},
+			Target:  "2023-01-02T12.00.00.000.jpg",
+			Matched: true,
+		},
 	}
 
 	buf := &bytes.Buffer{}
 
-	count := DisplayPending(buf, files)
+	count := DisplayPending(buf, files, c)
 
 	out := buf.String()
-	expected1 := "img1.jpg ➔ 2023-01-01.jpg"
-	expected2 := "a.jpg    ➔ 2023-01-02.jpg"
+	expected1 := "img1.jpg ➔ 2023-01-01T12.00.00.000.jpg"
+	expected2 := "a.jpg    ➔ 2023-01-02T12.00.00.000.jpg"
 
 	if !strings.Contains(out, expected1) {
 		t.Errorf("\nOutput:\n%s\nExpected to contain: %q", out, expected1)

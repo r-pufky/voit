@@ -16,8 +16,8 @@ digikam; this can be applied to any file.
 ``` bash
 go test ./... -v
 make  # manually build development with: go build -o voit
-./voit -h
-./voit rename -h
+./bin/voit -h
+./bin/voit rename -h
 ```
 
 ## Run

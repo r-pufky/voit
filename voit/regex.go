@@ -1,5 +1,5 @@
 /*
-Regex patterns for matching datetimes in filenames.
+Regex patterns for matching date times in filenames.
 
 Voit 8601 Regex Breakdown (YYYY-MM-DDTHH.MM.SS.SSS):
 ^\s*          - Ignore leading whitespace
@@ -25,7 +25,16 @@ Voit 8601 Regex Breakdown (YYYY-MM-DDTHH.MM.SS.SSS):
 package voit
 
 import (
+	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
+	"time"
+)
+
+const (
+	WebkitEpochOffset = 11644473600 // Secs between Jan 1, 1601 and Jan 1, 1970.
+	MsPerSec          = 1000000     // MS per second.
 )
 
 var Patterns = map[string]*regexp.Regexp{
@@ -43,4 +52,55 @@ var Patterns = map[string]*regexp.Regexp{
 	"webkit-chrome": regexp.MustCompile(`(\d{17})`),                                                                               // SSSSSSSSSSSSSSSSS (https://www.epochconverter.com/webkit)
 	"created":       regexp.MustCompile(`[^\s\S]`),                                                                                // Never match
 	"modified":      regexp.MustCompile(`[^\s\S]`),                                                                                // Never match
+}
+
+// ----------------------------------------------------------------------------
+// Regex.
+
+// Extract time object from given string and filter.
+func Extract(name string, pattern string) (time.Time, error) {
+	match := Patterns[pattern].FindStringSubmatch(name)
+	if match == nil {
+		return time.Time{}, fmt.Errorf("no date pattern matched: %s", name)
+	}
+
+	// 0 - full match, 1..N - Regex match groups. Unmatched groups ("") and out
+	// of bounds matches are set to 0.
+	group := func(i int) int {
+		if match == nil || i >= len(match) {
+			return 0
+		}
+		val, _ := strconv.Atoi(match[i])
+		return val
+	}
+
+	if pattern == "webkit-chrome" {
+		ms, err := strconv.ParseInt(match[1], 10, 64)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("invalid webkit format: %s", name)
+		}
+		sec := (ms / MsPerSec) - WebkitEpochOffset
+		return time.Unix(sec, (ms%MsPerSec)*1000).UTC(), nil
+	}
+
+	return time.Date(
+		group(1),
+		time.Month(group(2)),
+		group(3),
+		group(4),
+		group(5),
+		group(6),
+		group(7)*int(time.Millisecond),
+		time.UTC,
+	), nil
+}
+
+// Strip matched regex from string. Invalid patterns and non-matched regex
+// returns original string.
+func Strip(s string, pattern string) string {
+	if regex, ok := Patterns[pattern]; ok {
+		replaced := regex.ReplaceAllString(s, "")
+		return strings.TrimSpace(strings.Join(strings.Fields(replaced), " "))
+	}
+	return s
 }

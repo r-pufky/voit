@@ -3,6 +3,7 @@ package internal
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,10 +15,9 @@ import (
 	"github.com/r-pufky/voit/voit"
 )
 
-// Scan provided file or directory path for files non-recursively. File
-// metadata is parsed with no changes to loaded data.
-func Scan(f string) ([]voit.File, error) {
-	var files []voit.File
+// Scan provided file or directory path for files non-recursively.
+func Scan(f string) ([]*voit.Voit, error) {
+	var files []*voit.Voit
 
 	stat, err := os.Stat(f)
 	if err != nil {
@@ -30,7 +30,7 @@ func Scan(f string) ([]voit.File, error) {
 			return nil, err
 		}
 		if file != nil {
-			files = append(files, *file)
+			files = append(files, file)
 		}
 		return files, nil
 	}
@@ -40,21 +40,21 @@ func Scan(f string) ([]voit.File, error) {
 		return nil, err
 	}
 
-	for _, scanFile := range scan {
-		info, err := scanFile.Info()
+	for _, dFile := range scan {
+		info, err := dFile.Info()
 		if err != nil {
-			return nil, fmt.Errorf("Unable to get file attributes: %s", scanFile)
+			return nil, fmt.Errorf("unable to get file attributes: %s", dFile)
 		}
 		if info.IsDir() {
 			continue
 		}
 
-		file, err := new(filepath.Join(f, scanFile.Name()))
+		file, err := new(filepath.Join(f, dFile.Name()))
 		if err != nil {
 			return nil, err
 		}
 		if file != nil {
-			files = append(files, *file)
+			files = append(files, file)
 		}
 	}
 	return files, nil
@@ -92,8 +92,8 @@ func SplitMultiExt(f string) (string, string) {
 	return name, ""
 }
 
-// Return new File struct based on given source path.
-func new(f string) (*voit.File, error) {
+// Return new voit.Voit struct based on given source path.
+func new(f string) (*voit.Voit, error) {
 	source, err := filepath.Abs(f)
 	if err != nil {
 		log.Fatalf("Failed to set absolute path: %v", err)
@@ -104,7 +104,7 @@ func new(f string) (*voit.File, error) {
 		log.Fatalf("Failed to stat file: %v", err)
 	}
 	if info.IsDir() {
-		return nil, fmt.Errorf("Skipped (directory): %s", source)
+		return nil, fmt.Errorf("skipped (directory): %s", source)
 	}
 
 	name, ext := SplitMultiExt(source)
@@ -117,30 +117,82 @@ func new(f string) (*voit.File, error) {
 		}
 	}
 
-	return &voit.File{
-		CTime: time.Date(
-			cTime.Year(),
-			cTime.Month(),
-			cTime.Day(),
-			cTime.Hour(),
-			cTime.Minute(),
-			cTime.Second(),
-			cTime.Nanosecond(),
-			time.UTC,
-		),
-		MTime: time.Date(
-			mTime.Year(),
-			mTime.Month(),
-			mTime.Day(),
-			mTime.Hour(),
-			mTime.Minute(),
-			mTime.Second(),
-			mTime.Nanosecond(),
-			time.UTC,
-		),
-		Source: source,
-		Name:   name,
-		Ext:    ext,
-		Width:  uint8(len(name) + len(ext)),
+	return &voit.Voit{
+		File: voit.File{
+			CTime: time.Date(
+				cTime.Year(),
+				cTime.Month(),
+				cTime.Day(),
+				cTime.Hour(),
+				cTime.Minute(),
+				cTime.Second(),
+				cTime.Nanosecond(),
+				time.UTC,
+			),
+			MTime: time.Date(
+				mTime.Year(),
+				mTime.Month(),
+				mTime.Day(),
+				mTime.Hour(),
+				mTime.Minute(),
+				mTime.Second(),
+				mTime.Nanosecond(),
+				time.UTC,
+			),
+			Source: source,
+			Name:   name,
+			Ext:    ext,
+			Width:  uint8(len(name) + len(ext)),
+		},
 	}, nil
+}
+
+// Rename files using File.Source and Mark.Target resolving collisions unless
+// overwrite is enabled.
+func Rename(w io.Writer, files []*voit.Voit, overwrite bool, verbose bool) {
+	defer timeAction(w, time.Now(), len(files))
+	for _, f := range files {
+		if f.Matched {
+			target := f.Target
+
+			if !overwrite {
+				if _, err := os.Stat(target); err == nil {
+					if verbose {
+						fmt.Fprintf(w, "Collision: %s", target)
+					}
+					target = resolveFSCollisions(w, target)
+				}
+			}
+
+			if err := os.Rename(f.File.Source, target); err != nil {
+				fmt.Fprintf(w, "Error renaming %s to %s: %v\n", f.File.Source, target, err)
+			} else if verbose {
+				fmt.Fprintf(w, "Renamed: %s%s ➔ %s%s\n", f.File.Source, f.File.Ext, target, f.File.Ext)
+			}
+		}
+	}
+}
+
+// Resolve FS collision during file disk operation.
+func resolveFSCollisions(w io.Writer, path string) string {
+	ext := filepath.Ext(path)
+	name := strings.TrimSuffix(path, ext)
+	counter := 1
+	uniquePath := path
+
+	for {
+		uniquePath = fmt.Sprintf("%s_%d%s", name, counter, ext)
+		if _, err := os.Stat(uniquePath); os.IsNotExist(err) {
+			fmt.Fprintf(w, "Collision (new target): %s", uniquePath)
+			break
+		}
+		counter++
+	}
+	return uniquePath
+}
+
+// Time file actions. Defer timeAction(w, time.Now(), len(files))
+func timeAction(w io.Writer, start time.Time, count int) {
+	elapsed := time.Since(start)
+	fmt.Fprintf(w, "Renamed %d files in %s.\n", count, elapsed)
 }

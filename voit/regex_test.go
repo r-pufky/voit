@@ -3,6 +3,7 @@ package voit
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestVoitRegex(t *testing.T) {
@@ -345,7 +346,6 @@ func TestPatterns(t *testing.T) {
 					continue
 				}
 
-				// If it matched and we want to verify individual capture groups
 				if matched && len(tc.expectedGroups) > 0 {
 					// matches[0] is the full match, matches[1:] are the sub-groups
 					capturedGroups := matches[1:]
@@ -363,4 +363,128 @@ func TestPatterns(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExtract(t *testing.T) {
+	tests := []struct {
+		name        string
+		file        string
+		pattern     string
+		wantTime    time.Time
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "no match [pattern]",
+			file:        "not-a-date-file.txt",
+			pattern:     "photo",
+			wantTime:    time.Time{},
+			wantErr:     true,
+			errContains: "no date pattern matched",
+		},
+		{
+			name:     "webkit-chrome match",
+			file:     "13253932800000000.dat",
+			pattern:  "webkit-chrome",
+			wantTime: time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:     "full pattern parse extraction",
+			file:     "20260517_112356123.jpg",
+			pattern:  "photo-ms",
+			wantTime: time.Date(2026, time.May, 17, 11, 23, 56, 123*int(time.Millisecond), time.UTC),
+		},
+		{
+			name:     "partial pattern extraction",
+			file:     "2026-05-17",
+			pattern:  "voit",
+			wantTime: time.Date(2026, time.May, 17, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:        "no match [ctime]",
+			file:        "anything.txt",
+			pattern:     "created",
+			wantTime:    time.Time{},
+			wantErr:     true,
+			errContains: "no date pattern matched",
+		},
+		{
+			name:        "no match [mtime]",
+			file:        "anything.txt",
+			pattern:     "modified",
+			wantTime:    time.Time{},
+			wantErr:     true,
+			errContains: "no date pattern matched",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotTime, err := Extract(tt.file, tt.pattern)
+
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("\nError:   %v\nwantErr: %v", err, tt.wantErr)
+			}
+
+			if err != nil && tt.errContains != "" {
+				if !containsString(err.Error(), tt.errContains) {
+					t.Errorf("\nString: %q\nDoes not contain expected substring: %q", err.Error(), tt.errContains)
+				}
+				return
+			}
+
+			if !gotTime.Equal(tt.wantTime) {
+				t.Errorf("\ngotTime:  %v\nwantTime: %v", gotTime, tt.wantTime)
+			}
+		})
+	}
+}
+
+func TestStrip(t *testing.T) {
+	tests := []struct {
+		name     string
+		s        string
+		pattern  string
+		wantName string
+	}{
+		{
+			name:     "sanity: invalid pattern [original string]",
+			s:        "20260517_104536300 beach vacation",
+			pattern:  "invalid",
+			wantName: "20260517_104536300 beach vacation",
+		},
+		{
+			name:     "sanity: no match [original string]",
+			s:        "20260517_104536300 beach vacation",
+			pattern:  "signal",
+			wantName: "20260517_104536300 beach vacation",
+		},
+		{
+			name:     "sanity: match [pattern removed]",
+			s:        "20260517_104536300 beach vacation",
+			pattern:  "photo-ms",
+			wantName: "beach vacation",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			name := Strip(tt.s, tt.pattern)
+
+			if name != tt.wantName {
+				t.Fatalf("\nGot:  %q\nWant: %q", name, tt.wantName)
+			}
+		})
+	}
+}
+
+func containsString(str, substr string) bool {
+	return len(str) >= len(substr) && func() bool {
+		for i := 0; i <= len(str)-len(substr); i++ {
+			if str[i:i+len(substr)] == substr {
+				return true
+			}
+		}
+		return false
+	}()
 }

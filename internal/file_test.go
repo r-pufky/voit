@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -8,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/r-pufky/voit/voit"
 )
 
 func TestScan_SingleFileSuccess(t *testing.T) {
@@ -26,8 +30,8 @@ func TestScan_SingleFileSuccess(t *testing.T) {
 	if len(files) != 1 {
 		t.Errorf("Expected 1 file in slice, got %d", len(files))
 	}
-	if files[0].Source != tmpFile.Name() {
-		t.Errorf("Expected file path %s, got %s", tmpFile.Name(), files[0].Source)
+	if files[0].File.Source != tmpFile.Name() {
+		t.Errorf("Expected file path %s, got %s", tmpFile.Name(), files[0].File.Source)
 	}
 }
 
@@ -67,14 +71,14 @@ func TestScan_DirectoryWithMixedContents(t *testing.T) {
 	}
 
 	if len(files) != 3 {
-		t.Errorf("Expected 2 files processed from directory, found %d", len(files))
+		t.Errorf("Expected 3 files processed from directory, found %d", len(files))
 	}
 
 	foundFile1 := false
 	foundFile2 := false
 	foundFile3 := false
 	for _, f := range files {
-		switch filepath.Base(f.Source) {
+		switch filepath.Base(f.File.Source) {
 		case "file1.txt":
 			foundFile1 = true
 		case "file2.log":
@@ -201,13 +205,13 @@ func TestNew_Success(t *testing.T) {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
 
-	if fileModel.Source == "" {
+	if fileModel.File.Source == "" {
 		t.Error("Expected Source path, got empty string")
 	}
-	if !strings.HasSuffix(fileModel.Ext, ".txt") {
-		t.Errorf("Expected extension .txt, got %s", fileModel.Ext)
+	if !strings.HasSuffix(fileModel.File.Ext, ".txt") {
+		t.Errorf("Expected extension .txt, got %s", fileModel.File.Ext)
 	}
-	if fileModel.CTime.Location() != time.UTC || fileModel.MTime.Location() != time.UTC {
+	if fileModel.File.CTime.Location() != time.UTC || fileModel.File.MTime.Location() != time.UTC {
 		t.Error("Expected CTime and MTime to be in UTC")
 	}
 }
@@ -224,7 +228,7 @@ func TestNew_DirectoryError(t *testing.T) {
 		t.Fatal("Expected an error when passing a directory, got nil")
 	}
 
-	expectedErr := "Skipped (directory):"
+	expectedErr := "skipped (directory):"
 	if !strings.Contains(err.Error(), expectedErr) {
 		t.Errorf("Expected error to contain %q, got %q", expectedErr, err.Error())
 	}
@@ -269,7 +273,223 @@ func TestNew_LinuxOSPath(t *testing.T) {
 		t.Fatalf("Expected no error on Linux, got: %v", err)
 	}
 
-	if fileModel.MTime.IsZero() {
+	if fileModel.File.MTime.IsZero() {
 		t.Error("Expected MTime to be parsed from linux syscall stat, got zero time")
+	}
+}
+
+func TestExecuteRename(t *testing.T) {
+	tests := []struct {
+		name      string
+		overwrite bool
+		setupFS   func(t *testing.T, baseDir string) []*voit.Voit
+		verifyFS  func(t *testing.T, baseDir string, files []*voit.Voit, output string)
+	}{
+		{
+			name:      "sanity: skip unmatched files [no file changes]",
+			overwrite: false,
+			setupFS: func(t *testing.T, baseDir string) []*voit.Voit {
+				src := filepath.Join(baseDir, "unmatched.jpg")
+				if err := os.WriteFile(src, []byte("data"), 0644); err != nil {
+					t.Fatal(err)
+				}
+				return []*voit.Voit{
+					{
+						File:    voit.File{Source: src, Ext: ".jpg"},
+						Matched: false,
+						Target:  filepath.Join(baseDir, "target.jpg"),
+					},
+				}
+			},
+			verifyFS: func(t *testing.T, baseDir string, files []*voit.Voit, output string) {
+				if _, err := os.Stat(files[0].File.Source); os.IsNotExist(err) {
+					t.Errorf("Expected source file to remain untouched, but it was deleted or moved")
+				}
+				if !strings.Contains(output, "Renamed 1 files") {
+					t.Errorf("Expected summary metric message, got: %q", output)
+				}
+			},
+		},
+		{
+			name:      "sanity: default [file renamed]",
+			overwrite: false,
+			setupFS: func(t *testing.T, baseDir string) []*voit.Voit {
+				src := filepath.Join(baseDir, "photo.jpg")
+				if err := os.WriteFile(src, []byte("data"), 0644); err != nil {
+					t.Fatal(err)
+				}
+				return []*voit.Voit{
+					{
+						File:    voit.File{Source: src, Ext: ".jpg"},
+						Matched: true,
+						Target:  filepath.Join(baseDir, "vacation.jpg"),
+					},
+				}
+			},
+			verifyFS: func(t *testing.T, baseDir string, files []*voit.Voit, output string) {
+				if _, err := os.Stat(files[0].Target); os.IsNotExist(err) {
+					t.Errorf("Expected target file %s to exist, but it was not found", files[0].Target)
+				}
+				if !strings.Contains(output, "Renamed:") {
+					t.Errorf("Expected verbose rename tracking output, got: %q", output)
+				}
+			},
+		},
+		{
+			name:      "sanity: overwrite [vacation.jpg is overwritten]",
+			overwrite: true,
+			setupFS: func(t *testing.T, baseDir string) []*voit.Voit {
+				src := filepath.Join(baseDir, "photo.jpg")
+				tgt := filepath.Join(baseDir, "vacation.jpg")
+
+				if err := os.WriteFile(src, []byte("new-content"), 0644); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(tgt, []byte("old-content"), 0644); err != nil {
+					t.Fatal(err)
+				}
+				return []*voit.Voit{
+					{
+						File:    voit.File{Source: src, Ext: ".jpg"},
+						Matched: true,
+						Target:  tgt,
+					},
+				}
+			},
+			verifyFS: func(t *testing.T, baseDir string, files []*voit.Voit, output string) {
+				content, err := os.ReadFile(files[0].Target)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if string(content) != "new-content" {
+					t.Errorf("Expected file to be overwritten with 'new-content', got %q", string(content))
+				}
+				if strings.Contains(output, "Collision:") {
+					t.Errorf("Expected no collision notification when overwrite is true")
+				}
+			},
+		},
+		{
+			name:      "sanity: collision [target is renamed to vacation_2.jpg]",
+			overwrite: false,
+			setupFS: func(t *testing.T, baseDir string) []*voit.Voit {
+				src := filepath.Join(baseDir, "photo.jpg")
+				tgt := filepath.Join(baseDir, "vacation.jpg")
+				collision1 := filepath.Join(baseDir, "vacation_1.jpg")
+
+				if err := os.WriteFile(src, []byte("moving-file"), 0644); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(tgt, []byte("blocker"), 0644); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(collision1, []byte("blocker-sub"), 0644); err != nil {
+					t.Fatal(err)
+				}
+				return []*voit.Voit{
+					{
+						File:    voit.File{Source: src, Ext: ".jpg"},
+						Matched: true,
+						Target:  tgt,
+					},
+				}
+			},
+			verifyFS: func(t *testing.T, baseDir string, files []*voit.Voit, output string) {
+				expectedFinalTarget := filepath.Join(baseDir, "vacation_2.jpg")
+				if _, err := os.Stat(expectedFinalTarget); os.IsNotExist(err) {
+					t.Errorf("Expected %s to exist", expectedFinalTarget)
+				}
+				if !strings.Contains(output, "Collision:") || !strings.Contains(output, "Collision (new target):") {
+					t.Errorf("Expected collision notification, got context: %q", output)
+				}
+			},
+		},
+		{
+			name:      "sanity: missing source [file deleted mid-execution, error logged]",
+			overwrite: false,
+			setupFS: func(t *testing.T, baseDir string) []*voit.Voit {
+				return []*voit.Voit{
+					{
+						File:    voit.File{Source: filepath.Join(baseDir, "non-existent.jpg"), Ext: ".jpg"},
+						Matched: true,
+						Target:  filepath.Join(baseDir, "output.jpg"),
+					},
+				}
+			},
+			verifyFS: func(t *testing.T, baseDir string, files []*voit.Voit, output string) {
+				if !strings.Contains(output, "Error renaming") {
+					t.Errorf("Expected Error renaming, got: %q", output)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			files := tt.setupFS(t, tmpDir)
+
+			var buf bytes.Buffer
+			Rename(&buf, files, tt.overwrite, true)
+
+			tt.verifyFS(t, tmpDir, files, buf.String())
+		})
+	}
+}
+
+func TestResolveFSCollisions(t *testing.T) {
+	tests := []struct {
+		name       string
+		files      []string
+		path       string
+		wantSuffix string
+		wantOutput string
+	}{
+		{
+			name:       "sanity: no additional collisions [file_1.txt]",
+			files:      []string{},
+			path:       "file.txt",
+			wantSuffix: "_1.txt",
+			wantOutput: "Collision (new target): ",
+		},
+		{
+			name: "sanity: additional collisions [file_2.txt]",
+			files: []string{
+				"file_1.txt",
+			},
+			path:       "file.txt",
+			wantSuffix: "_2.txt",
+			wantOutput: "Collision (new target): ",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+
+			for _, file := range tt.files {
+				fullPath := filepath.Join(tmpDir, file)
+				if err := os.WriteFile(fullPath, []byte("dummy"), 0644); err != nil {
+					t.Fatalf("failed to set up test file %s: %v", fullPath, err)
+				}
+			}
+
+			fullpath := filepath.Join(tmpDir, tt.path)
+			var buf bytes.Buffer
+			result := resolveFSCollisions(&buf, fullpath)
+
+			if !strings.HasSuffix(result, tt.wantSuffix) {
+				t.Errorf("expected path to end with %q, got %q", tt.wantSuffix, result)
+			}
+
+			if _, err := os.Stat(result); !os.IsNotExist(err) {
+				t.Errorf("expected returned path %q to not exist, but it does", result)
+			}
+
+			expectedFullOutput := fmt.Sprintf("%s%s", tt.wantOutput, result)
+			if buf.String() != expectedFullOutput {
+				t.Errorf("expected output %q, got %q", expectedFullOutput, buf.String())
+			}
+		})
 	}
 }

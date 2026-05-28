@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	"github.com/r-pufky/voit/internal"
+	"github.com/r-pufky/voit/models"
 	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -64,7 +65,44 @@ var (
 				fmt.Printf("Loaded Options: %+v\n", opts)
 			}
 
-			internal.Rename(opts)
+			config := &voit.Config{
+				Format:  voit.DefaultVFormat,
+				Pattern: opts.Rename.Pattern,
+				SSep:    opts.SpanSep,
+				DSep:    opts.DescSep,
+				TSep:    opts.TagSep,
+				Lower:   opts.Rename.Lower,
+			}
+
+			files, err := internal.Scan(opts.AbsSource)
+			if err != nil {
+				log.Fatalf("Unable to complete source file scan: %v", err)
+			}
+
+			if len(files) == 0 {
+				fmt.Println("No files matched the known datetime formats.")
+				os.Exit(0)
+			}
+
+			stageRename(files, &opts, config)
+
+			count := internal.DisplayPending(os.Stdout, files, config)
+			if count != 0 {
+				if opts.Rename.Overwrite {
+					fmt.Printf("\nProposed changes (OVERWRITE ENABLED): %d file(s).\n", count)
+				} else {
+					fmt.Printf("\nProposed changes: %d file(s).\n", count)
+				}
+
+				if !opts.Yes && !internal.Confirm(os.Stdin, os.Stdout) {
+					fmt.Println("Operation aborted by user.")
+					os.Exit(0)
+				}
+
+				internal.Rename(os.Stdout, files, opts.Rename.Overwrite, opts.Verbose)
+			} else {
+				fmt.Println("No files matched proposed changes.")
+			}
 		},
 	}
 )
@@ -111,5 +149,67 @@ func loadUserConfig() {
 	// Unmarshal config into opts struct.
 	if err := viper.Unmarshal(&opts); err != nil {
 		fmt.Printf("Invalid config: %v\n", err)
+	}
+}
+
+// Process files from given source path and stage rename transformations.
+func stageRename(files []*voit.Voit, opts *models.Opts, config *voit.Config) {
+	collisions := make(map[string]int)
+
+	for i := range files {
+		files[i].Ingest(config)
+
+		if !files[i].Orig.PTime.Time.IsZero() {
+			files[i].Matched = true
+
+			if opts.Rename.PreferPattern && !files[i].Orig.VTime.Time.IsZero() {
+				files[i].Mark.VTime = files[i].Orig.PTime
+			}
+
+			if opts.Rename.Strip {
+				files[i].Mark.Desc.Text = voit.Strip(files[i].Orig.Desc.Text, config.Pattern)
+				fmt.Printf("%q", files[i].Mark.Desc.Text)
+			}
+		} else if !files[i].Orig.VTime.Time.IsZero() {
+			files[i].Matched = true
+			files[i].Mark.VTime = files[i].Orig.VTime
+		}
+
+		if opts.Rename.NoTags {
+			files[i].Mark.Tags.Items = []string{}
+		} else {
+			files[i].Mark.Tags = files[i].Orig.Tags
+		}
+
+		if opts.Rename.NoDesc {
+			files[i].Mark.Desc.Text = ""
+		} else if !opts.Rename.Strip { // Only update if not stripped.
+			files[i].Mark.Desc = files[i].Orig.Desc
+		}
+
+		desc := files[i].Mark.Desc.Text
+		files[i].Format(config)
+
+		for {
+			if _, exists := collisions[files[i].Target]; !exists {
+				collisions[files[i].Target] = 1
+				break // No Collision.
+			}
+
+			count := collisions[files[i].Target]
+			collisions[files[i].Target]++
+
+			if desc != "" {
+				// Standard collision.
+				files[i].Mark.Desc.Text = fmt.Sprintf("%s_%d", desc, count)
+			} else if len(files[i].Mark.Tags.Items) > 0 {
+				// No description, tags.
+				files[i].Mark.Desc.Text = fmt.Sprintf("%d", count)
+			} else {
+				// No description, no tags.
+				files[i].Mark.Desc.Text = fmt.Sprintf("%d", count)
+			}
+			files[i].Format(config)
+		}
 	}
 }

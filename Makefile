@@ -1,6 +1,6 @@
 MODULE=$(shell go list -m)
 VERSION=$(shell git describe --tags --always --dirty)
-BINARY_NAME=voit
+BINARY_NAME=bin/voit
 LDFLAGS=-ldflags "-X '$(MODULE)/cmd.Version=$(VERSION)'"
 
 build:
