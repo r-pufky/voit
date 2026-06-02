@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/r-pufky/voit/models"
+	. "github.com/r-pufky/voit/config"
 	"github.com/r-pufky/voit/voit"
 )
 
@@ -77,15 +77,15 @@ func TestNormalize(t *testing.T) {
 func TestStageTag(t *testing.T) {
 	tests := []struct {
 		name     string
-		opts     *models.Opts
+		opts     *Opts
 		f        []*voit.Voit
 		c        *voit.Config
 		wantVoit []voit.Voit
 	}{
 		{
 			name: "sanity: add tag [tag added]",
-			opts: &models.Opts{
-				Tag: models.TagOpts{
+			opts: &Opts{
+				Tag: TagOpts{
 					Add: []string{"additional"},
 				},
 			},
@@ -123,8 +123,8 @@ func TestStageTag(t *testing.T) {
 		},
 		{
 			name: "sanity: remove tag [tag removed]",
-			opts: &models.Opts{
-				Tag: models.TagOpts{
+			opts: &Opts{
+				Tag: TagOpts{
 					Remove: []string{"summer"},
 				},
 			},
@@ -162,8 +162,8 @@ func TestStageTag(t *testing.T) {
 		},
 		{
 			name: "sanity: set tags [tag overwritten]",
-			opts: &models.Opts{
-				Tag: models.TagOpts{
+			opts: &Opts{
+				Tag: TagOpts{
 					Set: []string{"family", "europe"},
 				},
 			},
@@ -201,8 +201,8 @@ func TestStageTag(t *testing.T) {
 		},
 		{
 			name: "sanity: select add tag [subset of tags have tags added]",
-			opts: &models.Opts{
-				Tag: models.TagOpts{
+			opts: &Opts{
+				Tag: TagOpts{
 					Select: []string{"summer", "vacation", "park"},
 					Add:    []string{"europe"},
 				},
@@ -269,6 +269,18 @@ func TestStageTag(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.c.TSep == "" {
+				tt.c.TSep = Cfg.TagSep
+			}
+			if tt.c.DSep == "" {
+				tt.c.DSep = Cfg.DescSep
+			}
+			if tt.c.SSep == "" {
+				tt.c.SSep = Cfg.SpanSep
+			}
+			if tt.c.Format == "" {
+				tt.c.Format = voit.DefaultVFormat
+			}
 			stageTag(tt.f, tt.opts, tt.c)
 
 			// DeepEqual will compare memory addresses if pointers, not values.

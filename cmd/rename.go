@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"slices"
 
+	. "github.com/r-pufky/voit/config"
 	"github.com/r-pufky/voit/internal"
-	"github.com/r-pufky/voit/models"
 	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -27,13 +27,11 @@ var (
 			"NOTE: Pattern flag is overridden if specified in config.",
 		Example: "  voit rename -s ./photos --photo-ms\n  voit rename -s image.jpg -l",
 
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			loadUserConfig()
-
+		PreRun: func(cmd *cobra.Command, args []string) {
 			// Resolve all patterns to pattern variable using option name.
 			for _, opt := range slices.Collect(maps.Keys(voit.Patterns)) {
 				if cmd.Flags().Changed(opt) {
-					opts.Rename.Pattern = opt
+					Cfg.Rename.Pattern = opt
 					break
 				}
 			}
@@ -41,40 +39,40 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			// Override default Pattern if set in config.
 			if viper.IsSet("pattern") {
-				opts.Rename.Pattern = viper.GetString("pattern")
+				Cfg.Rename.Pattern = viper.GetString("rename.pattern")
 			}
 
-			if opts.Rename.Pattern == "" {
+			if Cfg.Rename.Pattern == "" {
 				log.Fatal("a rename pattern must be specified via flags (e.g., --photo-ms) or within your config file.")
 			}
 
-			if opts.AbsSource == "" {
+			if Cfg.AbsSource == "" {
 				var err error
-				opts.AbsSource, err = os.Getwd()
+				Cfg.AbsSource, err = os.Getwd()
 				if err != nil {
 					log.Fatalf("unable to get current working directory (%v).", err)
 				}
 			}
-			absPath, err := filepath.Abs(opts.AbsSource)
+			absPath, err := filepath.Abs(Cfg.AbsSource)
 			if err != nil {
-				log.Fatalf("source does not exist (%v).", opts.AbsSource)
+				log.Fatalf("source does not exist (%v).", Cfg.AbsSource)
 			}
-			opts.AbsSource = absPath
+			Cfg.AbsSource = absPath
 
-			if opts.Verbose {
-				fmt.Printf("Loaded Options: %+v\n", opts)
+			if Cfg.Verbose {
+				fmt.Printf("Loaded Options: %+v\n", Cfg)
 			}
 
 			config := &voit.Config{
 				Format:  voit.DefaultVFormat,
-				Pattern: opts.Rename.Pattern,
-				SSep:    opts.SpanSep,
-				DSep:    opts.DescSep,
-				TSep:    opts.TagSep,
-				Lower:   opts.Rename.Lower,
+				Pattern: Cfg.Rename.Pattern,
+				SSep:    Cfg.SpanSep,
+				DSep:    Cfg.DescSep,
+				TSep:    Cfg.TagSep,
+				Lower:   Cfg.Rename.Lower,
 			}
 
-			files, err := internal.Scan(opts.AbsSource)
+			files, err := internal.Scan(Cfg.AbsSource)
 			if err != nil {
 				log.Fatalf("Unable to complete source file scan: %v", err)
 			}
@@ -84,22 +82,22 @@ var (
 				os.Exit(0)
 			}
 
-			stageRename(files, &opts, config)
+			stageRename(files, &Cfg, config)
 
 			count := internal.DisplayPending(os.Stdout, files, config)
 			if count != 0 {
-				if opts.Rename.Overwrite {
+				if Cfg.Rename.Overwrite {
 					fmt.Printf("\nProposed changes (OVERWRITE ENABLED): %d file(s).\n", count)
 				} else {
 					fmt.Printf("\nProposed changes: %d file(s).\n", count)
 				}
 
-				if !opts.Yes && !internal.Confirm(os.Stdin, os.Stdout) {
+				if !Cfg.Yes && !internal.Confirm(os.Stdin, os.Stdout) {
 					fmt.Println("Operation aborted by user.")
 					os.Exit(0)
 				}
 
-				internal.Rename(os.Stdout, files, opts.Rename.Overwrite, opts.Verbose)
+				internal.Rename(os.Stdout, files, Cfg.Rename.Overwrite, Cfg.Verbose)
 			} else {
 				fmt.Println("No files matched proposed changes.")
 			}
@@ -109,6 +107,7 @@ var (
 
 func init() {
 	renameCmd.Flags().SortFlags = false
+	rootCmd.AddCommand(renameCmd)
 
 	renameCmd.Flags().Bool("photo-ms", false, "YYYYMMDD░HHMMSSSSS      │ Photos, Screenshots (ms)")
 	renameCmd.Flags().Bool("photo", false, "YYYYMMDD░HHMMSS         │ Photos, Screenshots")
@@ -126,18 +125,18 @@ func init() {
 	renameCmd.Flags().Bool("modified", false, "[modtime]               │ Use file modification date")
 	renameCmd.MarkFlagsMutuallyExclusive(slices.Collect(maps.Keys(voit.Patterns))...)
 
-	renameCmd.Flags().BoolVarP(&opts.Rename.Lower, "lower", "l", false, "Lowercase description and extension")
-	renameCmd.Flags().BoolVarP(&opts.Rename.Strip, "strip", "", false, "Strip matched pattern from description")
-	renameCmd.Flags().BoolVarP(&opts.Rename.NoDesc, "no-desc", "", false, "Remove description")
-	renameCmd.Flags().BoolVarP(&opts.Rename.NoDesc, "no-tags", "", false, "Remove tags")
-	renameCmd.Flags().BoolVarP(&opts.Rename.Overwrite, "overwrite", "", false, "Overwrite existing target files (DANGEROUS)")
-	renameCmd.Flags().BoolVarP(&opts.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both exist (default: use VTIME if both exist)")
+	renameCmd.Flags().BoolVarP(&Cfg.Rename.Lower, "lower", "l", false, "Lowercase description and extension")
+	renameCmd.Flags().BoolVarP(&Cfg.Rename.Strip, "strip", "", false, "Strip matched pattern from description")
+	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoDesc, "no-desc", "", false, "Remove description")
+	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoTags, "no-tags", "", false, "Remove tags")
+	renameCmd.Flags().BoolVarP(&Cfg.Rename.Overwrite, "overwrite", "", false, "Overwrite existing target files (DANGEROUS)")
+	renameCmd.Flags().BoolVarP(&Cfg.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both exist (default: use VTIME if both exist)")
 
 	viper.BindPFlags(rootCmd.Flags())
 }
 
 // Process files from given source path and stage rename transformations.
-func stageRename(files []*voit.Voit, opts *models.Opts, config *voit.Config) {
+func stageRename(files []*voit.Voit, opts *Opts, config *voit.Config) {
 	collisions := make(map[string]int)
 
 	for i := range files {

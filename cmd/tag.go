@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
+	. "github.com/r-pufky/voit/config"
 	"github.com/r-pufky/voit/internal"
-	"github.com/r-pufky/voit/models"
 	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -24,59 +24,59 @@ var (
 			"Target files are automatically differentiated if there are name collisions.\n\n",
 		Example: "  voit tag -s ./photos -e party\n  voit tag -s ./photos -l cake -a candles -a bday",
 
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(cmd *cobra.Command, args []string) error {
 			loadUserConfig()
 			// Ensure tags are lowercased for file or CLI source.
 			if cmd.Flags().Changed("add") || viper.IsSet("add") {
-				opts.Tag.Add = normalize(viper.GetStringSlice("add"))
-				viper.Set("add", opts.Tag.Add)
+				Cfg.Tag.Add = normalize(viper.GetStringSlice("add"))
+				viper.Set("add", Cfg.Tag.Add)
 			}
 
 			if cmd.Flags().Changed("remove") || viper.IsSet("remove") {
-				opts.Tag.Remove = normalize(viper.GetStringSlice("remove"))
-				viper.Set("remove", opts.Tag.Remove)
+				Cfg.Tag.Remove = normalize(viper.GetStringSlice("remove"))
+				viper.Set("remove", Cfg.Tag.Remove)
 			}
 
 			if cmd.Flags().Changed("set") || viper.IsSet("set") {
-				opts.Tag.Set = normalize(viper.GetStringSlice("set"))
-				viper.Set("set", opts.Tag.Set)
+				Cfg.Tag.Set = normalize(viper.GetStringSlice("set"))
+				viper.Set("set", Cfg.Tag.Set)
 			}
 
 			if cmd.Flags().Changed("select") || viper.IsSet("select") {
-				opts.Tag.Select = normalize(viper.GetStringSlice("select"))
-				viper.Set("select", opts.Tag.Select)
+				Cfg.Tag.Select = normalize(viper.GetStringSlice("select"))
+				viper.Set("select", Cfg.Tag.Select)
 			}
 
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			if opts.AbsSource == "" {
+			if Cfg.AbsSource == "" {
 				var err error
-				opts.AbsSource, err = os.Getwd()
+				Cfg.AbsSource, err = os.Getwd()
 				if err != nil {
 					log.Fatalf("unable to get current working directory (%v).", err)
 				}
 			}
-			absPath, err := filepath.Abs(opts.AbsSource)
+			absPath, err := filepath.Abs(Cfg.AbsSource)
 			if err != nil {
-				log.Fatalf("source does not exist (%v).", opts.AbsSource)
+				log.Fatalf("source does not exist (%v).", Cfg.AbsSource)
 			}
-			opts.AbsSource = absPath
+			Cfg.AbsSource = absPath
 
-			if opts.Verbose {
-				fmt.Printf("Loaded Options: %+v\n", opts)
+			if Cfg.Verbose {
+				fmt.Printf("Loaded Options: %+v\n", Cfg)
 			}
 
 			config := &voit.Config{
 				Format:  voit.DefaultVFormat,
-				Pattern: opts.Rename.Pattern,
-				SSep:    opts.SpanSep,
-				DSep:    opts.DescSep,
-				TSep:    opts.TagSep,
-				Lower:   opts.Rename.Lower,
+				Pattern: Cfg.Rename.Pattern,
+				SSep:    Cfg.SpanSep,
+				DSep:    Cfg.DescSep,
+				TSep:    Cfg.TagSep,
+				Lower:   Cfg.Rename.Lower,
 			}
 
-			files, err := internal.Scan(opts.AbsSource)
+			files, err := internal.Scan(Cfg.AbsSource)
 			if err != nil {
 				log.Fatalf("Unable to complete source file scan: %v", err)
 			}
@@ -86,22 +86,22 @@ var (
 				os.Exit(0)
 			}
 
-			stageTag(files, &opts, config)
+			stageTag(files, &Cfg, config)
 
 			count := internal.DisplayPending(os.Stdout, files, config)
 			if count != 0 {
-				if opts.Tag.Overwrite {
+				if Cfg.Tag.Overwrite {
 					fmt.Printf("\nProposed changes (OVERWRITE ENABLED): %d file(s).\n", count)
 				} else {
 					fmt.Printf("\nProposed changes: %d file(s).\n", count)
 				}
 
-				if !opts.Yes && !internal.Confirm(os.Stdin, os.Stdout) {
+				if !Cfg.Yes && !internal.Confirm(os.Stdin, os.Stdout) {
 					fmt.Println("Operation aborted by user.")
 					os.Exit(0)
 				}
 
-				internal.Rename(os.Stdout, files, opts.Tag.Overwrite, opts.Verbose)
+				internal.Rename(os.Stdout, files, Cfg.Tag.Overwrite, Cfg.Verbose)
 			} else {
 				fmt.Println("No files matched proposed changes.")
 			}
@@ -111,13 +111,14 @@ var (
 
 func init() {
 	tagCmd.Flags().SortFlags = false
+	rootCmd.AddCommand(tagCmd)
 
-	tagCmd.Flags().StringSliceVarP(&opts.Tag.Add, "add", "a", []string{}, "Add specified tags")
-	tagCmd.Flags().StringSliceVarP(&opts.Tag.Remove, "remove", "r", []string{}, "Remove specified tags")
-	tagCmd.Flags().StringSliceVarP(&opts.Tag.Set, "set", "e", []string{}, "Set tags to specified tags")
-	tagCmd.Flags().StringSliceVarP(&opts.Tag.Select, "select", "l", []string{}, "Perform operations only on files with matching tags (default: all)")
-	tagCmd.Flags().BoolVarP(&opts.Tag.Delete, "delete", "d", false, "Remove all tags")
-	tagCmd.Flags().BoolVarP(&opts.Tag.Overwrite, "overwrite", "", false, "Overwrite existing target files (DANGEROUS)")
+	tagCmd.Flags().StringSliceVarP(&Cfg.Tag.Add, "add", "a", []string{}, "Add specified tags")
+	tagCmd.Flags().StringSliceVarP(&Cfg.Tag.Remove, "remove", "r", []string{}, "Remove specified tags")
+	tagCmd.Flags().StringSliceVarP(&Cfg.Tag.Set, "set", "e", []string{}, "Set tags to specified tags")
+	tagCmd.Flags().StringSliceVarP(&Cfg.Tag.Select, "select", "l", []string{}, "Perform operations only on files with matching tags (default: all)")
+	tagCmd.Flags().BoolVarP(&Cfg.Tag.Delete, "delete", "d", false, "Remove all tags")
+	tagCmd.Flags().BoolVarP(&Cfg.Tag.Overwrite, "overwrite", "", false, "Overwrite existing target files (DANGEROUS)")
 	tagCmd.MarkFlagsMutuallyExclusive("add", "remove", "set", "delete")
 	viper.BindPFlags(tagCmd.Flags())
 }
@@ -132,7 +133,7 @@ func normalize(s []string) []string {
 }
 
 // Process files from given source path and stage rename transformations.
-func stageTag(files []*voit.Voit, opts *models.Opts, config *voit.Config) {
+func stageTag(files []*voit.Voit, opts *Opts, config *voit.Config) {
 	collisions := make(map[string]int)
 
 	for i := range files {

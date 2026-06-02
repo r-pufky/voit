@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/r-pufky/voit/models"
+	. "github.com/r-pufky/voit/config"
 	"github.com/r-pufky/voit/voit"
 )
 
@@ -22,15 +22,15 @@ var (
 func TestStageRename(t *testing.T) {
 	tests := []struct {
 		name     string
-		opts     *models.Opts
+		opts     *Opts
 		f        []*voit.Voit
 		c        *voit.Config
 		wantVoit []voit.Voit
 	}{
 		{
 			name: "sanity: no match [ZeroTime, matched false]",
-			opts: &models.Opts{
-				Rename: models.RenameOpts{},
+			opts: &Opts{
+				Rename: RenameOpts{},
 			},
 			f: []*voit.Voit{
 				{
@@ -56,8 +56,8 @@ func TestStageRename(t *testing.T) {
 		},
 		{
 			name: "sanity: default [vtime match]",
-			opts: &models.Opts{
-				Rename: models.RenameOpts{},
+			opts: &Opts{
+				Rename: RenameOpts{},
 			},
 			f: []*voit.Voit{
 				{
@@ -93,8 +93,8 @@ func TestStageRename(t *testing.T) {
 		},
 		{
 			name: "pattern: match prefer pattern strip [ptime match, stripped]",
-			opts: &models.Opts{
-				Rename: models.RenameOpts{
+			opts: &Opts{
+				Rename: RenameOpts{
 					PreferPattern: true,
 					Strip:         true,
 				},
@@ -136,8 +136,8 @@ func TestStageRename(t *testing.T) {
 		},
 		{
 			name: "no desc no tags [only date and extension]",
-			opts: &models.Opts{
-				Rename: models.RenameOpts{
+			opts: &Opts{
+				Rename: RenameOpts{
 					NoDesc: true,
 					NoTags: true,
 				},
@@ -176,8 +176,8 @@ func TestStageRename(t *testing.T) {
 		},
 		{
 			name: "collision: default [count added to desc].",
-			opts: &models.Opts{
-				Rename: models.RenameOpts{},
+			opts: &Opts{
+				Rename: RenameOpts{},
 			},
 			f: []*voit.Voit{
 				{
@@ -265,8 +265,8 @@ func TestStageRename(t *testing.T) {
 		},
 		{
 			name: "collision: no desc, no tags [count added to desc].",
-			opts: &models.Opts{
-				Rename: models.RenameOpts{
+			opts: &Opts{
+				Rename: RenameOpts{
 					NoDesc: true,
 					NoTags: true,
 				},
@@ -357,8 +357,8 @@ func TestStageRename(t *testing.T) {
 		},
 		{
 			name: "collision: no desc, tags [count added to desc].",
-			opts: &models.Opts{
-				Rename: models.RenameOpts{
+			opts: &Opts{
+				Rename: RenameOpts{
 					NoDesc: true,
 				},
 			},

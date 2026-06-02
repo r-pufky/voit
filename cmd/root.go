@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/r-pufky/voit/models"
+	. "github.com/r-pufky/voit/config"
 	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -14,23 +14,19 @@ import (
 
 var (
 	Version = "development"
-	opts    models.Opts
 )
 
 func init() {
 	rootCmd.PersistentFlags().SortFlags = false
 
-	rootCmd.PersistentFlags().StringVarP(&opts.AbsSource, "source", "s", "", "Directory containing files or File to rename (default: current directory)")
-	rootCmd.PersistentFlags().StringVarP(&opts.TagSep, "tag-sep", "", voit.DefaultTagsSep, "Tag separator")
-	rootCmd.PersistentFlags().StringVarP(&opts.DescSep, "desc-sep", "", voit.DefaultDescSep, "Description separator")
-	rootCmd.PersistentFlags().StringVarP(&opts.SpanSep, "span-sep", "", voit.DefaultSpanSep, "VTIME date span separator")
-	rootCmd.PersistentFlags().BoolVarP(&opts.Verbose, "verbose", "v", false, "Show verbose information")
-	rootCmd.PersistentFlags().BoolVarP(&opts.Yes, "yes", "y", false, "Automatically confirm operations")
+	rootCmd.PersistentFlags().StringVarP(&Cfg.AbsSource, "source", "s", "", "Directory containing files or File to rename (default: current directory)")
+	rootCmd.PersistentFlags().StringVarP(&Cfg.TagSep, "tag-sep", "", voit.DefaultTagsSep, "Tag separator")
+	rootCmd.PersistentFlags().StringVarP(&Cfg.DescSep, "desc-sep", "", voit.DefaultDescSep, "Description separator")
+	rootCmd.PersistentFlags().StringVarP(&Cfg.SpanSep, "span-sep", "", voit.DefaultSpanSep, "VTIME date span separator")
+	rootCmd.PersistentFlags().BoolVarP(&Cfg.Verbose, "verbose", "v", false, "Show verbose information")
+	rootCmd.PersistentFlags().BoolVarP(&Cfg.Yes, "yes", "y", false, "Automatically confirm operations")
 
-	rootCmd.Flags().BoolVarP(&opts.Build, "build", "b", false, "Show build version.")
-
-	rootCmd.AddCommand(renameCmd)
-	rootCmd.AddCommand(tagCmd)
+	rootCmd.Flags().BoolVarP(&Cfg.Build, "build", "b", false, "Show build version.")
 }
 
 var rootCmd = &cobra.Command{
@@ -43,11 +39,26 @@ var rootCmd = &cobra.Command{
 		"  https://karl-voit.at/tagstore/en/papers.shtml\n\n" +
 		"Source: https://github.com/r-pufky/voit\n\n" +
 		"Set default options in: ~/.config/voit.toml (see README.md)\n",
+
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if err := viper.BindPFlags(cmd.Flags()); err != nil {
+			return err
+		}
+
+		if err := viper.Unmarshal(&Cfg); err != nil {
+			return fmt.Errorf("unable to decode into struct: %w", err)
+		}
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if opts.Build {
+		if Cfg.Verbose {
+			fmt.Printf("Parsed Config: %+v\n", Cfg)
+		}
+		if Cfg.Build {
 			fmt.Printf("Version: %s\n", Version)
 			os.Exit(0)
 		}
+
 		cmd.Help()
 	},
 }
@@ -64,13 +75,13 @@ func loadUserConfig() {
 	viper.SetConfigFile(filepath.Join(home, ".config", "voit.toml"))
 
 	if err := viper.ReadInConfig(); err == nil {
-		if opts.Verbose {
+		if Cfg.Verbose {
 			fmt.Printf("Using config file: %s\n", viper.ConfigFileUsed())
 		}
 	}
 
 	// Unmarshal config into opts struct.
-	if err := viper.Unmarshal(&opts); err != nil {
+	if err := viper.Unmarshal(&Cfg); err != nil {
 		fmt.Printf("Invalid config: %v\n", err)
 	}
 }
