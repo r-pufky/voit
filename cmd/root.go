@@ -4,10 +4,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/r-pufky/voit/models"
 	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -28,6 +30,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&opts.Build, "build", "b", false, "Show build version.")
 
 	rootCmd.AddCommand(renameCmd)
+	rootCmd.AddCommand(tagCmd)
 }
 
 var rootCmd = &cobra.Command{
@@ -53,5 +56,21 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func loadUserConfig() {
+	home, _ := os.UserHomeDir()
+	viper.SetConfigFile(filepath.Join(home, ".config", "voit.toml"))
+
+	if err := viper.ReadInConfig(); err == nil {
+		if opts.Verbose {
+			fmt.Printf("Using config file: %s\n", viper.ConfigFileUsed())
+		}
+	}
+
+	// Unmarshal config into opts struct.
+	if err := viper.Unmarshal(&opts); err != nil {
+		fmt.Printf("Invalid config: %v\n", err)
 	}
 }

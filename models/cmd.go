@@ -9,6 +9,7 @@ type Opts struct {
 	SpanSep   string     // VTIME span separator.
 	AbsSource string     // AbsPath to Directory containing files or File to rename.
 	Rename    RenameOpts // Rename options.
+	Tag       TagOpts    // Tag options.
 }
 
 type RenameOpts struct {
@@ -19,4 +20,13 @@ type RenameOpts struct {
 	NoTags        bool   // Remove tags from filename.
 	Overwrite     bool   // Overwrite existing target files.
 	PreferPattern bool   // Prefer pattern date use over VTIME if both exist.
+}
+
+type TagOpts struct {
+	Add       []string // Add specified tags.
+	Remove    []string // Remove specified tags.
+	Set       []string // Set tags to specified tags.
+	Select    []string // Perform operations only on files with matching tags.
+	Delete    bool     // Remove all tags.
+	Overwrite bool     // Overwrite existing target files.
 }

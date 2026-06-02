@@ -23,6 +23,7 @@ make  # manually build development with: go build -o voit
 ## Run
 See command help for full list of options.
 
+### Rename
 ``` bash
 voit rename -h
 
@@ -39,6 +40,23 @@ voit rename --photo-ms -s /my/other/photos
 # Remove description.
 voit rename --no-desc -s /my/photos/PXL_20240204_122332362.jpg
 > 2024-02-04T12.23.32.362.jpg
+```
+
+### Tag
+``` bash
+# Set all files explicitly to 'party' tags.
+voit tag -s ./photos -e party
+
+# Add 'candles', 'bday' tags to all files with 'cake' tag.
+voit tag -s ./photos -l cake -a candles -a bday
+
+# Remove 'candles', 'bday' tags.
+voit tag -s ./photos -r candles -r bday  # From all files.
+voit tag -s ./photos -r candles -r bday -l cake  # From all files with 'cake'.
+
+# Remove all tags.
+voit tag -s ./photos -d  # From all files.
+voit tag -s ./photos -d -l candles bday  # From all files with 'candles', 'bday'.
 ```
 
 ## Config

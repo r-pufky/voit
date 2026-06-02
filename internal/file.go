@@ -147,8 +147,8 @@ func new(f string) (*voit.Voit, error) {
 	}, nil
 }
 
-// Rename files using File.Source and Mark.Target resolving collisions unless
-// overwrite is enabled.
+// Rename files marked as Matched using File.Source and Mark.Target resolving
+// collisions unless overwrite is enabled.
 func Rename(w io.Writer, files []*voit.Voit, overwrite bool, verbose bool) {
 	defer timeAction(w, time.Now(), len(files))
 	for _, f := range files {

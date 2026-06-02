@@ -313,3 +313,14 @@ func (t *Tag) Delete(s string) {
 		t.Items = slices.Delete(t.Items, i, i+1)
 	}
 }
+
+// Match tags.
+func (t *Tag) Match(tags []string) bool {
+	for _, match := range tags {
+		if !slices.Contains(t.Items, match) {
+			return false
+		}
+	}
+
+	return true
+}

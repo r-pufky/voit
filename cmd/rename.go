@@ -136,22 +136,6 @@ func init() {
 	viper.BindPFlags(rootCmd.Flags())
 }
 
-func loadUserConfig() {
-	home, _ := os.UserHomeDir()
-	viper.SetConfigFile(filepath.Join(home, ".config", "voit.toml"))
-
-	if err := viper.ReadInConfig(); err == nil {
-		if opts.Verbose {
-			fmt.Printf("Using config file: %s\n", viper.ConfigFileUsed())
-		}
-	}
-
-	// Unmarshal config into opts struct.
-	if err := viper.Unmarshal(&opts); err != nil {
-		fmt.Printf("Invalid config: %v\n", err)
-	}
-}
-
 // Process files from given source path and stage rename transformations.
 func stageRename(files []*voit.Voit, opts *models.Opts, config *voit.Config) {
 	collisions := make(map[string]int)
