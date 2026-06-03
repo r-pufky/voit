@@ -16,6 +16,34 @@ var (
 	baseDesc = "beach vacation"
 )
 
+func TestNewConfig(t *testing.T) {
+	cfg := NewConfig()
+
+	if cfg.Format != DefaultVFormat {
+		t.Errorf("expected Format to be %q, got %q", DefaultVFormat, cfg.Format)
+	}
+
+	if cfg.Pattern != DefaultPattern {
+		t.Errorf("expected Pattern to be %q, got %q", DefaultPattern, cfg.Pattern)
+	}
+
+	if cfg.SSep != DefaultSpanSep {
+		t.Errorf("expected SSep to be %q, got %q", DefaultSpanSep, cfg.SSep)
+	}
+
+	if cfg.DSep != DefaultDescSep {
+		t.Errorf("expected DSep to be %q, got %q", DefaultDescSep, cfg.DSep)
+	}
+
+	if cfg.TSep != DefaultTagsSep {
+		t.Errorf("expected TSep to be %q, got %q", DefaultTagsSep, cfg.TSep)
+	}
+
+	if cfg.Lower != false {
+		t.Errorf("expected Lower to be false, got %t", cfg.Lower)
+	}
+}
+
 // ----------------------------------------------------------------------------
 // Voit
 
@@ -23,7 +51,7 @@ func TestVoitIngest(t *testing.T) {
 	tests := []struct {
 		name     string
 		f        *Voit
-		c        *Config
+		c        Config
 		wantVoit *Voit
 	}{
 		// Sanity checks.
@@ -36,7 +64,7 @@ func TestVoitIngest(t *testing.T) {
 					Ext:    ".jpg",
 				},
 			},
-			c: &Config{
+			c: Config{
 				Pattern: "photo",
 			},
 			wantVoit: &Voit{
@@ -61,7 +89,7 @@ func TestVoitIngest(t *testing.T) {
 					Ext:    ".jpg",
 				},
 			},
-			c: &Config{
+			c: Config{
 				Pattern: "photo",
 				DSep:    "|",
 				TSep:    " - ",
@@ -88,7 +116,7 @@ func TestVoitIngest(t *testing.T) {
 					Ext:    ".jpg",
 				},
 			},
-			c: &Config{
+			c: Config{
 				Pattern: "photo",
 				DSep:    "|",
 				TSep:    "|",
@@ -116,7 +144,7 @@ func TestVoitIngest(t *testing.T) {
 					Ext:    ".jpg",
 				},
 			},
-			c: &Config{
+			c: Config{
 				Pattern: "photo",
 			},
 			wantVoit: &Voit{
@@ -140,7 +168,7 @@ func TestVoitIngest(t *testing.T) {
 					Ext:    ".jpg",
 				},
 			},
-			c: &Config{
+			c: Config{
 				Pattern: "photo",
 			},
 			wantVoit: &Voit{
@@ -164,7 +192,7 @@ func TestVoitIngest(t *testing.T) {
 					Ext:    ".jpg",
 				},
 			},
-			c: &Config{
+			c: Config{
 				Pattern: "photo",
 			},
 			wantVoit: &Voit{
@@ -189,7 +217,7 @@ func TestVoitIngest(t *testing.T) {
 					CTime:  fixedCTime,
 				},
 			},
-			c: &Config{},
+			c: NewConfig(),
 			wantVoit: &Voit{
 				File: File{
 					Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
@@ -215,7 +243,7 @@ func TestVoitIngest(t *testing.T) {
 					MTime:  fixedMTime,
 				},
 			},
-			c: &Config{
+			c: Config{
 				Pattern: "modified",
 			},
 			wantVoit: &Voit{
@@ -242,7 +270,7 @@ func TestVoitIngest(t *testing.T) {
 					Ext:    ".jpg",
 				},
 			},
-			c: &Config{
+			c: Config{
 				Pattern: "photo-ms",
 			},
 			wantVoit: &Voit{
@@ -265,7 +293,7 @@ func TestVoitIngest(t *testing.T) {
 					Ext:    ".jpg",
 				},
 			},
-			c: &Config{
+			c: Config{
 				Pattern: "photo-ms",
 			},
 			wantVoit: &Voit{
@@ -280,7 +308,7 @@ func TestVoitIngest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.f.Ingest(tt.c)
+			tt.f.Ingest(&tt.c)
 
 			if !reflect.DeepEqual(tt.f, tt.wantVoit) {
 				t.Errorf("\nGot Voit:  %+v\nWant Voit: %+v", tt.f, tt.wantVoit)

@@ -9,7 +9,6 @@ import (
 )
 
 func TestDisplayPending(t *testing.T) {
-	c := &voit.Config{}
 	files := []*voit.Voit{
 		{
 			File: voit.File{
@@ -33,7 +32,7 @@ func TestDisplayPending(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 
-	count := DisplayPending(buf, files, c)
+	count := DisplayPending(buf, files)
 
 	out := buf.String()
 	expected1 := "img1.jpg ➔ 2023-01-01T12.00.00.000.jpg"

@@ -24,7 +24,6 @@ func TestStageRename(t *testing.T) {
 		name     string
 		opts     *Opts
 		f        []*voit.Voit
-		c        *voit.Config
 		wantVoit []voit.Voit
 	}{
 		{
@@ -41,7 +40,6 @@ func TestStageRename(t *testing.T) {
 					},
 				},
 			},
-			c: &voit.Config{},
 			wantVoit: []voit.Voit{
 				{
 					File: voit.File{
@@ -68,7 +66,6 @@ func TestStageRename(t *testing.T) {
 					},
 				},
 			},
-			c: &voit.Config{},
 			wantVoit: []voit.Voit{
 				{
 					File: voit.File{
@@ -95,6 +92,7 @@ func TestStageRename(t *testing.T) {
 			name: "pattern: match prefer pattern strip [ptime match, stripped]",
 			opts: &Opts{
 				Rename: RenameOpts{
+					Pattern:       "photo-ms",
 					PreferPattern: true,
 					Strip:         true,
 				},
@@ -107,9 +105,6 @@ func TestStageRename(t *testing.T) {
 						Ext:    ".jpg",
 					},
 				},
-			},
-			c: &voit.Config{
-				Pattern: "photo-ms",
 			},
 			wantVoit: []voit.Voit{
 				{
@@ -151,7 +146,6 @@ func TestStageRename(t *testing.T) {
 					},
 				},
 			},
-			c: &voit.Config{},
 			wantVoit: []voit.Voit{
 				{
 					File: voit.File{
@@ -202,7 +196,6 @@ func TestStageRename(t *testing.T) {
 					},
 				},
 			},
-			c: &voit.Config{},
 			wantVoit: []voit.Voit{
 				{
 					File: voit.File{
@@ -294,7 +287,6 @@ func TestStageRename(t *testing.T) {
 					},
 				},
 			},
-			c: &voit.Config{},
 			wantVoit: []voit.Voit{
 				{
 					File: voit.File{
@@ -385,7 +377,6 @@ func TestStageRename(t *testing.T) {
 					},
 				},
 			},
-			c: &voit.Config{},
 			wantVoit: []voit.Voit{
 				{
 					File: voit.File{
@@ -450,7 +441,7 @@ func TestStageRename(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stageRename(tt.f, tt.opts, tt.c)
+			stageRename(tt.f, tt.opts)
 
 			// DeepEqual will compare memory addresses if pointers, not values.
 			// Convert to value. This is required as pointers are needed to update

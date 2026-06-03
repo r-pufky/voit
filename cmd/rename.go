@@ -15,16 +15,22 @@ import (
 	"github.com/spf13/viper"
 )
 
+const renameLong = `
+Rename files according to file name & attribute dates.
+
+  {VTIME} {DESC} -- {TAGS}.{EXT}
+
+Target files are automatically differentiated if there are name collisions.
+NOTE: Pattern flag is overridden if specified in config.
+`
+
 var (
 	pattern string
 
 	renameCmd = &cobra.Command{
-		Use:   "rename",
-		Short: "Rename files according to file name & attribute dates",
-		Long: "Rename files according to file name & attribute dates.\n\n" +
-			"  {VTIME} {DESC} -- {TAGS}.{EXT}\n\n" +
-			"Target files are automatically differentiated if there are name collisions.\n\n" +
-			"NOTE: Pattern flag is overridden if specified in config.",
+		Use:     "rename",
+		Short:   "Rename files according to file name & attribute dates",
+		Long:    renameLong,
 		Example: "  voit rename -s ./photos --photo-ms\n  voit rename -s image.jpg -l",
 
 		PreRun: func(cmd *cobra.Command, args []string) {
@@ -36,12 +42,8 @@ var (
 				}
 			}
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			// Override default Pattern if set in config.
-			if viper.IsSet("pattern") {
-				Cfg.Rename.Pattern = viper.GetString("rename.pattern")
-			}
 
+		Run: func(cmd *cobra.Command, args []string) {
 			if Cfg.Rename.Pattern == "" {
 				log.Fatal("a rename pattern must be specified via flags (e.g., --photo-ms) or within your config file.")
 			}
@@ -60,16 +62,7 @@ var (
 			Cfg.AbsSource = absPath
 
 			if Cfg.Verbose {
-				fmt.Printf("Loaded Options: %+v\n", Cfg)
-			}
-
-			config := &voit.Config{
-				Format:  voit.DefaultVFormat,
-				Pattern: Cfg.Rename.Pattern,
-				SSep:    Cfg.SpanSep,
-				DSep:    Cfg.DescSep,
-				TSep:    Cfg.TagSep,
-				Lower:   Cfg.Rename.Lower,
+				fmt.Printf("Parsed Config: %+v [voit: %+v]\n", Cfg, Cfg.Voit())
 			}
 
 			files, err := internal.Scan(Cfg.AbsSource)
@@ -82,11 +75,11 @@ var (
 				os.Exit(0)
 			}
 
-			stageRename(files, &Cfg, config)
+			stageRename(files, &Cfg)
 
-			count := internal.DisplayPending(os.Stdout, files, config)
+			count := internal.DisplayPending(os.Stdout, files)
 			if count != 0 {
-				if Cfg.Rename.Overwrite {
+				if Cfg.Overwrite {
 					fmt.Printf("\nProposed changes (OVERWRITE ENABLED): %d file(s).\n", count)
 				} else {
 					fmt.Printf("\nProposed changes: %d file(s).\n", count)
@@ -97,7 +90,7 @@ var (
 					os.Exit(0)
 				}
 
-				internal.Rename(os.Stdout, files, Cfg.Rename.Overwrite, Cfg.Verbose)
+				internal.Rename(os.Stdout, files, Cfg.Overwrite, Cfg.Verbose)
 			} else {
 				fmt.Println("No files matched proposed changes.")
 			}
@@ -108,6 +101,11 @@ var (
 func init() {
 	renameCmd.Flags().SortFlags = false
 	rootCmd.AddCommand(renameCmd)
+
+	renameCmd.Flags().BoolVarP(&Cfg.Rename.Strip, "strip", "", false, "Strip matched pattern from description")
+	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoDesc, "no-desc", "", false, "Remove description")
+	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoTags, "no-tags", "", false, "Remove tags")
+	renameCmd.Flags().BoolVarP(&Cfg.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both exist (default: use VTIME if both exist)")
 
 	renameCmd.Flags().Bool("photo-ms", false, "YYYYMMDD░HHMMSSSSS      │ Photos, Screenshots (ms)")
 	renameCmd.Flags().Bool("photo", false, "YYYYMMDD░HHMMSS         │ Photos, Screenshots")
@@ -125,22 +123,16 @@ func init() {
 	renameCmd.Flags().Bool("modified", false, "[modtime]               │ Use file modification date")
 	renameCmd.MarkFlagsMutuallyExclusive(slices.Collect(maps.Keys(voit.Patterns))...)
 
-	renameCmd.Flags().BoolVarP(&Cfg.Rename.Lower, "lower", "l", false, "Lowercase description and extension")
-	renameCmd.Flags().BoolVarP(&Cfg.Rename.Strip, "strip", "", false, "Strip matched pattern from description")
-	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoDesc, "no-desc", "", false, "Remove description")
-	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoTags, "no-tags", "", false, "Remove tags")
-	renameCmd.Flags().BoolVarP(&Cfg.Rename.Overwrite, "overwrite", "", false, "Overwrite existing target files (DANGEROUS)")
-	renameCmd.Flags().BoolVarP(&Cfg.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both exist (default: use VTIME if both exist)")
-
 	viper.BindPFlags(rootCmd.Flags())
 }
 
 // Process files from given source path and stage rename transformations.
-func stageRename(files []*voit.Voit, opts *Opts, config *voit.Config) {
+func stageRename(files []*voit.Voit, opts *Opts) {
 	collisions := make(map[string]int)
+	vCfg := opts.Voit()
 
 	for i := range files {
-		files[i].Ingest(config)
+		files[i].Ingest(&vCfg)
 
 		if !files[i].Orig.PTime.Time.IsZero() {
 			files[i].Matched = true
@@ -150,7 +142,7 @@ func stageRename(files []*voit.Voit, opts *Opts, config *voit.Config) {
 			}
 
 			if opts.Rename.Strip {
-				files[i].Mark.Desc.Text = voit.Strip(files[i].Orig.Desc.Text, config.Pattern)
+				files[i].Mark.Desc.Text = voit.Strip(files[i].Orig.Desc.Text, vCfg.Pattern)
 				fmt.Printf("%q", files[i].Mark.Desc.Text)
 			}
 		} else if !files[i].Orig.VTime.Time.IsZero() {
@@ -171,7 +163,7 @@ func stageRename(files []*voit.Voit, opts *Opts, config *voit.Config) {
 		}
 
 		desc := files[i].Mark.Desc.Text
-		files[i].Format(config)
+		files[i].Format(&vCfg)
 
 		for {
 			if _, exists := collisions[files[i].Target]; !exists {
@@ -192,7 +184,7 @@ func stageRename(files []*voit.Voit, opts *Opts, config *voit.Config) {
 				// No description, no tags.
 				files[i].Mark.Desc.Text = fmt.Sprintf("%d", count)
 			}
-			files[i].Format(config)
+			files[i].Format(&vCfg)
 		}
 	}
 }

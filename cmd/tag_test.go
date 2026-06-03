@@ -79,7 +79,6 @@ func TestStageTag(t *testing.T) {
 		name     string
 		opts     *Opts
 		f        []*voit.Voit
-		c        *voit.Config
 		wantVoit []voit.Voit
 	}{
 		{
@@ -98,7 +97,6 @@ func TestStageTag(t *testing.T) {
 					},
 				},
 			},
-			c: &voit.Config{},
 			wantVoit: []voit.Voit{
 				{
 					File: voit.File{
@@ -137,7 +135,6 @@ func TestStageTag(t *testing.T) {
 					},
 				},
 			},
-			c: &voit.Config{},
 			wantVoit: []voit.Voit{
 				{
 					File: voit.File{
@@ -176,7 +173,6 @@ func TestStageTag(t *testing.T) {
 					},
 				},
 			},
-			c: &voit.Config{},
 			wantVoit: []voit.Voit{
 				{
 					File: voit.File{
@@ -223,7 +219,6 @@ func TestStageTag(t *testing.T) {
 					},
 				},
 			},
-			c: &voit.Config{},
 			wantVoit: []voit.Voit{
 				{
 					File: voit.File{
@@ -269,19 +264,7 @@ func TestStageTag(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.c.TSep == "" {
-				tt.c.TSep = Cfg.TagSep
-			}
-			if tt.c.DSep == "" {
-				tt.c.DSep = Cfg.DescSep
-			}
-			if tt.c.SSep == "" {
-				tt.c.SSep = Cfg.SpanSep
-			}
-			if tt.c.Format == "" {
-				tt.c.Format = voit.DefaultVFormat
-			}
-			stageTag(tt.f, tt.opts, tt.c)
+			stageTag(tt.f, tt.opts)
 
 			// DeepEqual will compare memory addresses if pointers, not values.
 			// Convert to value. This is required as pointers are needed to update

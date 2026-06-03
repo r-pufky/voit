@@ -101,6 +101,17 @@ type Desc struct {
 	Text string // {DESCRIPTION}.
 }
 
+func NewConfig() Config {
+	return Config{
+		Format:  DefaultVFormat,
+		Pattern: DefaultPattern,
+		SSep:    DefaultSpanSep,
+		DSep:    DefaultDescSep,
+		TSep:    DefaultTagsSep,
+		Lower:   false,
+	}
+}
+
 // ----------------------------------------------------------------------------
 // Voit
 
@@ -108,21 +119,6 @@ type Desc struct {
 // DefaultDescSep, DefaultTagsSep, DefaultSpanSep, DefaultVFormat,
 // DefaultPattern.
 func (f *Voit) Ingest(c *Config) {
-	if c.Format == "" {
-		c.Format = DefaultVFormat
-	}
-	if c.Pattern == "" {
-		c.Pattern = DefaultPattern
-	}
-	if len(c.DSep) == 0 {
-		c.DSep = DefaultDescSep
-	}
-	if len(c.TSep) == 0 {
-		c.TSep = DefaultTagsSep
-	}
-	if len(c.SSep) == 0 {
-		c.SSep = DefaultSpanSep
-	}
 	var err error
 
 	tIdx := f.Orig.Tags.Chomp(f.File.Name, c.TSep)
@@ -152,20 +148,13 @@ func (f *Voit) Ingest(c *Config) {
 // DefaultDescSep, DefaultTagsSep, DefaultSpanSep, DefaultVFormat,
 // DefaultPattern.
 func (m *Voit) Format(c *Config) {
-	if c.Format == "" {
-		c.Format = DefaultVFormat
-	}
-	if len(c.DSep) == 0 {
-		c.DSep = DefaultDescSep
-	}
-	if len(c.TSep) == 0 {
-		c.TSep = DefaultTagsSep
-	}
-	if len(c.SSep) == 0 {
-		c.SSep = DefaultSpanSep
-	}
-
-	m.Target = filepath.Join(filepath.Dir(m.File.Source), fmt.Sprintf("%s%s%s%s", m.Mark.VTime.Format(c.Format, c.SSep), m.Mark.Desc.Format(c.Lower, c.DSep), m.Mark.Tags.Format(c.TSep), m.File.Ext))
+	m.Target = filepath.Join(
+		filepath.Dir(m.File.Source),
+		fmt.Sprintf("%s%s%s%s",
+			m.Mark.VTime.Format(c.Format, c.SSep),
+			m.Mark.Desc.Format(c.Lower, c.DSep),
+			m.Mark.Tags.Format(c.TSep),
+			m.File.Ext))
 }
 
 // ----------------------------------------------------------------------------

@@ -13,7 +13,7 @@ import (
 
 // Display source and target file name changes in column. Returns total matched
 // file count.
-func DisplayPending(out io.Writer, files []*voit.Voit, c *voit.Config) int {
+func DisplayPending(out io.Writer, files []*voit.Voit) int {
 	if len(files) == 0 {
 		return 0
 	}

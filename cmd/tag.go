@@ -15,16 +15,22 @@ import (
 	"github.com/spf13/viper"
 )
 
+const tagLong = `
+Tag files according to filters.
+
+  {VTIME} {DESC} -- {TAGS}.{EXT}
+
+Target files are automatically differentiated if there are name collisions.
+`
+
 var (
 	tagCmd = &cobra.Command{
-		Use:   "tag",
-		Short: "tag files according to filters",
-		Long: "Tag files according to filters.\n\n" +
-			"  {VTIME} {DESC} -- {TAGS}.{EXT}\n\n" +
-			"Target files are automatically differentiated if there are name collisions.\n\n",
+		Use:     "tag",
+		Short:   "tag files according to filters",
+		Long:    tagLong,
 		Example: "  voit tag -s ./photos -e party\n  voit tag -s ./photos -l cake -a candles -a bday",
 
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRun: func(cmd *cobra.Command, args []string) {
 			loadUserConfig()
 			// Ensure tags are lowercased for file or CLI source.
 			if cmd.Flags().Changed("add") || viper.IsSet("add") {
@@ -46,9 +52,8 @@ var (
 				Cfg.Tag.Select = normalize(viper.GetStringSlice("select"))
 				viper.Set("select", Cfg.Tag.Select)
 			}
-
-			return nil
 		},
+
 		Run: func(cmd *cobra.Command, args []string) {
 			if Cfg.AbsSource == "" {
 				var err error
@@ -64,16 +69,7 @@ var (
 			Cfg.AbsSource = absPath
 
 			if Cfg.Verbose {
-				fmt.Printf("Loaded Options: %+v\n", Cfg)
-			}
-
-			config := &voit.Config{
-				Format:  voit.DefaultVFormat,
-				Pattern: Cfg.Rename.Pattern,
-				SSep:    Cfg.SpanSep,
-				DSep:    Cfg.DescSep,
-				TSep:    Cfg.TagSep,
-				Lower:   Cfg.Rename.Lower,
+				fmt.Printf("Parsed Config: %+v [voit: %+v]\n", Cfg, Cfg.Voit())
 			}
 
 			files, err := internal.Scan(Cfg.AbsSource)
@@ -86,11 +82,11 @@ var (
 				os.Exit(0)
 			}
 
-			stageTag(files, &Cfg, config)
+			stageTag(files, &Cfg)
 
-			count := internal.DisplayPending(os.Stdout, files, config)
+			count := internal.DisplayPending(os.Stdout, files)
 			if count != 0 {
-				if Cfg.Tag.Overwrite {
+				if Cfg.Overwrite {
 					fmt.Printf("\nProposed changes (OVERWRITE ENABLED): %d file(s).\n", count)
 				} else {
 					fmt.Printf("\nProposed changes: %d file(s).\n", count)
@@ -101,7 +97,7 @@ var (
 					os.Exit(0)
 				}
 
-				internal.Rename(os.Stdout, files, Cfg.Tag.Overwrite, Cfg.Verbose)
+				internal.Rename(os.Stdout, files, Cfg.Overwrite, Cfg.Verbose)
 			} else {
 				fmt.Println("No files matched proposed changes.")
 			}
@@ -116,14 +112,13 @@ func init() {
 	tagCmd.Flags().StringSliceVarP(&Cfg.Tag.Add, "add", "a", []string{}, "Add specified tags")
 	tagCmd.Flags().StringSliceVarP(&Cfg.Tag.Remove, "remove", "r", []string{}, "Remove specified tags")
 	tagCmd.Flags().StringSliceVarP(&Cfg.Tag.Set, "set", "e", []string{}, "Set tags to specified tags")
-	tagCmd.Flags().StringSliceVarP(&Cfg.Tag.Select, "select", "l", []string{}, "Perform operations only on files with matching tags (default: all)")
+	tagCmd.Flags().StringSliceVarP(&Cfg.Tag.Select, "select", "c", []string{}, "Perform operations only on files with matching tags (default: all)")
 	tagCmd.Flags().BoolVarP(&Cfg.Tag.Delete, "delete", "d", false, "Remove all tags")
-	tagCmd.Flags().BoolVarP(&Cfg.Tag.Overwrite, "overwrite", "", false, "Overwrite existing target files (DANGEROUS)")
 	tagCmd.MarkFlagsMutuallyExclusive("add", "remove", "set", "delete")
 	viper.BindPFlags(tagCmd.Flags())
 }
 
-// normalize tag options to lowercase.
+// Normalize tag options to lowercase.
 func normalize(s []string) []string {
 	result := make([]string, len(s))
 	for i, v := range s {
@@ -133,11 +128,12 @@ func normalize(s []string) []string {
 }
 
 // Process files from given source path and stage rename transformations.
-func stageTag(files []*voit.Voit, opts *Opts, config *voit.Config) {
+func stageTag(files []*voit.Voit, opts *Opts) {
 	collisions := make(map[string]int)
+	vCfg := opts.Voit()
 
 	for i := range files {
-		files[i].Ingest(config)
+		files[i].Ingest(&vCfg)
 
 		// Copy the original struct and use new reference for tags.
 		files[i].Mark = files[i].Orig
@@ -174,7 +170,7 @@ func stageTag(files []*voit.Voit, opts *Opts, config *voit.Config) {
 			}
 
 			desc := files[i].Mark.Desc.Text
-			files[i].Format(config)
+			files[i].Format(&vCfg)
 
 			for {
 				if _, exists := collisions[files[i].Target]; !exists {
@@ -195,7 +191,7 @@ func stageTag(files []*voit.Voit, opts *Opts, config *voit.Config) {
 					// No description, no tags.
 					files[i].Mark.Desc.Text = fmt.Sprintf("%d", count)
 				}
-				files[i].Format(config)
+				files[i].Format(&vCfg)
 			}
 		}
 	}

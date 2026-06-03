@@ -1,5 +1,7 @@
 package config
 
+import "github.com/r-pufky/voit/voit"
+
 type Opts struct {
 	Yes       bool       `mapstructure:"yes"`
 	Verbose   bool       `mapstructure:"verbose"`
@@ -8,27 +10,53 @@ type Opts struct {
 	DescSep   string     `mapstructure:"desc-sep"`
 	SpanSep   string     `mapstructure:"span-sep"`
 	AbsSource string     `mapstructure:"abs-source"`
+	Format    string     `mapstructure:"format"`
+	Lower     bool       `mapstructure:"lower"`
+	Overwrite bool       `mapstructure:"overwrite"`
 	Rename    RenameOpts `mapstructure:"rename"`
 	Tag       TagOpts    `mapstructure:"tag"`
 }
 
 type RenameOpts struct {
 	Pattern       string `mapstructure:"pattern"`
-	Lower         bool   `mapstructure:"lower"`
 	Strip         bool   `mapstructure:"strip"`
 	NoDesc        bool   `mapstructure:"no-desc"`
 	NoTags        bool   `mapstructure:"no-tags"`
-	Overwrite     bool   `mapstructure:"overwrite"`
 	PreferPattern bool   `mapstructure:"prefer-pattern"`
 }
 
 type TagOpts struct {
-	Add       []string `mapstructure:"add"`
-	Remove    []string `mapstructure:"remove"`
-	Set       []string `mapstructure:"set"`
-	Select    []string `mapstructure:"select"`
-	Delete    bool     `mapstructure:"delete"`
-	Overwrite bool     `mapstructure:"overwrite"`
+	Add    []string `mapstructure:"add"`
+	Remove []string `mapstructure:"remove"`
+	Set    []string `mapstructure:"set"`
+	Select []string `mapstructure:"select"`
+	Delete bool     `mapstructure:"delete"`
 }
 
 var Cfg Opts
+
+// Return voit config using parsed options with model default values if unset.
+func (o Opts) Voit() voit.Config {
+	c := voit.NewConfig()
+
+	if o.Format != "" {
+		c.Format = o.Format
+	}
+	if o.SpanSep != "" {
+		c.SSep = o.SpanSep
+	}
+	if o.DescSep != "" {
+		c.DSep = o.DescSep
+	}
+	if o.TagSep != "" {
+		c.TSep = o.TagSep
+	}
+	c.Lower = o.Lower
+
+	if o.Rename.Pattern != "" {
+		c.Pattern = o.Rename.Pattern
+	} else {
+		c.Pattern = "voit"
+	}
+	return c
+}

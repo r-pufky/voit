@@ -48,7 +48,7 @@ voit rename --no-desc -s /my/photos/PXL_20240204_122332362.jpg
 voit tag -s ./photos -e party
 
 # Add 'candles', 'bday' tags to all files with 'cake' tag.
-voit tag -s ./photos -l cake -a candles -a bday
+voit tag -s ./photos -c cake -a candles -a bday
 
 # Remove 'candles', 'bday' tags.
 voit tag -s ./photos -r candles -r bday  # From all files.
@@ -56,18 +56,17 @@ voit tag -s ./photos -r candles -r bday -l cake  # From all files with 'cake'.
 
 # Remove all tags.
 voit tag -s ./photos -d  # From all files.
-voit tag -s ./photos -d -l candles bday  # From all files with 'candles', 'bday'.
+voit tag -s ./photos -d -c candles bday  # From all files with 'candles', 'bday'.
 ```
 
 ## Config
 A default configuration may be specified which will be loaded when executed.
-Values in this config are overridden by flags, with the exception of
-**Pattern**.
+Values in this config are superseded by flags.
 
 ``` toml
 # ~/.config/voit.toml
 
-# Only define options that should be set.
+# Only define options that are preferred defaults.
 
 # Global Options
 Yes       = true
@@ -78,8 +77,7 @@ SpanSep   = "--"
 
 # Rename Options
 [Rename]
-# Setting pattern ALWAYS overrides Pattern flag.
-Pattern       = 'photo-ms'
+photo-ms      = true
 Lower         = true
 Strip         = false
 NoDesc        = false
