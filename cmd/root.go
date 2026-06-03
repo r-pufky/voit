@@ -32,7 +32,7 @@ func init() {
 	loadUserConfig()
 	rootCmd.PersistentFlags().SortFlags = false
 
-	rootCmd.PersistentFlags().StringVarP(&Cfg.AbsSource, "source", "s", "", "Directory containing files or File to rename (default: current directory)")
+	rootCmd.PersistentFlags().StringVarP(&Cfg.AbsSource, "source", "s", "", "Source path for renaming files [globbing supported, use quotes to prevent shell expansion] (default: current directory)")
 	rootCmd.PersistentFlags().StringVarP(&Cfg.TagSep, "tag-sep", "", voit.DefaultTagsSep, "Tag separator")
 	rootCmd.PersistentFlags().StringVarP(&Cfg.DescSep, "desc-sep", "", voit.DefaultDescSep, "Description separator")
 	rootCmd.PersistentFlags().StringVarP(&Cfg.SpanSep, "span-sep", "", voit.DefaultSpanSep, "VTIME date span separator")

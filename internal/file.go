@@ -19,37 +19,33 @@ import (
 func Scan(f string) ([]*voit.Voit, error) {
 	var files []*voit.Voit
 
-	stat, err := os.Stat(f)
+	matches, err := filepath.Glob(f)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid glob pattern: %w", err)
 	}
 
-	if !stat.IsDir() {
-		file, err := new(f)
+	// Bare directories require globbing: /tmp ➔ /tmp/*.
+	if len(matches) == 1 {
+		stat, err := os.Stat(matches[0])
+		if err == nil && stat.IsDir() {
+			matches, err = filepath.Glob(filepath.Join(matches[0], "*"))
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	for _, path := range matches {
+		stat, err := os.Stat(path)
 		if err != nil {
 			return nil, err
 		}
-		if file != nil {
-			files = append(files, file)
-		}
-		return files, nil
-	}
 
-	scan, err := os.ReadDir(f)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, dFile := range scan {
-		info, err := dFile.Info()
-		if err != nil {
-			return nil, fmt.Errorf("unable to get file attributes: %s", dFile)
-		}
-		if info.IsDir() {
+		if stat.IsDir() {
 			continue
 		}
 
-		file, err := new(filepath.Join(f, dFile.Name()))
+		file, err := new(path)
 		if err != nil {
 			return nil, err
 		}
@@ -57,6 +53,7 @@ func Scan(f string) ([]*voit.Voit, error) {
 			files = append(files, file)
 		}
 	}
+
 	return files, nil
 }
 

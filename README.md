@@ -23,6 +23,11 @@ make  # manually build development with: go build -o voit
 ## Run
 See command help for full list of options.
 
+> [!NOTE]
+> Use quotes when globbing source files. Certain shells will expand globs
+> before passing arguments to binaries resulting in unexpected behavior.
+> Wrapping the path in quotes prevents the user shell from expanding these.
+
 ### Rename
 ``` bash
 voit rename -h
@@ -36,6 +41,7 @@ voit rename --photo-ms
 voit rename --photo-ms -s /my/photos/PXL_20240204_122332362.jpg
 > 2024-02-04T12.23.32.362 PXL_20240204_122332362.jpg
 voit rename --photo-ms -s /my/other/photos
+voit rename --photo-ms -s "/globbing/supported/PXL_2024*.jpg"  # Use quotes for globs.
 
 # Remove description.
 voit rename --no-desc -s /my/photos/PXL_20240204_122332362.jpg
@@ -57,6 +63,9 @@ voit tag -s ./photos -r candles -r bday -l cake  # From all files with 'cake'.
 # Remove all tags.
 voit tag -s ./photos -d  # From all files.
 voit tag -s ./photos -d -c candles bday  # From all files with 'candles', 'bday'.
+
+# Globbing supported. Use quotes.
+voit tag -s "./photos/PXL_2024*.jpg" -a candles -a bday
 ```
 
 ## Config
@@ -103,4 +112,3 @@ PGP: [466EEC2B67516C7117C85CE3A0BC35D16698BAB9][d] | [github gist][e]
 [f]: https://github.com/r-pufky/ansible_paperless_ngx/blob/main/LICENSE
 
 [h]: https://karl-voit.at/folder-hierarchy
-[i]: https://github.com/r-pufky/voit/blob/main/voit.go

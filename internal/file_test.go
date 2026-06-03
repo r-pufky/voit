@@ -94,9 +94,12 @@ func TestScan_DirectoryWithMixedContents(t *testing.T) {
 }
 
 func TestScan_InitialStatError(t *testing.T) {
-	_, err := Scan("/invalid/system/path/that/does/not/exist/anywhere")
-	if err == nil {
-		t.Fatal("Expected an error from os.Stat tracking a fake path, got nil")
+	files, err := Scan("/invalid/system/path/that/does/not/exist/anywhere")
+	if files != nil {
+		t.Fatalf("Got:  %+v\nWant: nil", files)
+	}
+	if err != nil {
+		t.Fatalf("Got: %v\nWant: nil", err)
 	}
 }
 
@@ -114,6 +117,84 @@ func TestScan_EmptyDirectory(t *testing.T) {
 
 	if len(files) != 0 {
 		t.Errorf("Expected 0 elements returned, got %d", len(files))
+	}
+}
+
+func TestScan_Globbing(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	files := []string{
+		"2026-06-03_photo1.jpg",
+		"2026-06-03_photo2.jpg",
+		"notes.txt",
+	}
+
+	for _, file := range files {
+		err := os.WriteFile(filepath.Join(tmpDir, file), []byte("fake data"), 0644)
+		if err != nil {
+			t.Fatalf("failed to set up mock file %s: %v", file, err)
+		}
+	}
+
+	// Directory matching file glob should not be parsed.
+	subDir := filepath.Join(tmpDir, "2026-06-03_nested_dir.jpg")
+	if err := os.Mkdir(subDir, 0755); err != nil {
+		t.Fatalf("failed to create mock directory: %v", err)
+	}
+
+	tests := []struct {
+		name      string
+		pattern   string
+		wantCount int
+	}{
+		{
+			name:      "sanity: no match",
+			pattern:   filepath.Join(tmpDir, "*.png"),
+			wantCount: 0,
+		},
+		{
+			name:      "sanity: bare directory [all files matched]",
+			pattern:   tmpDir,
+			wantCount: 3,
+		},
+		{
+			name:      "sanity: bare file [single file matched]",
+			pattern:   filepath.Join(tmpDir, "2026-06-03_photo1.jpg"),
+			wantCount: 1,
+		},
+		{
+			name:      "sanity: glob files [photo 1,2 matched]",
+			pattern:   filepath.Join(tmpDir, "2026-06-03_*.jpg"),
+			wantCount: 2,
+		},
+		{
+			name:      "sanity: glob all [directory skipped]",
+			pattern:   filepath.Join(tmpDir, "*"),
+			wantCount: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := Scan(tt.pattern)
+			if err != nil {
+				t.Fatalf("Scan() returned an unexpected error: %v", err)
+			}
+
+			if len(got) != tt.wantCount {
+				t.Errorf("Glob: %q\nGot:  %d\nWant %d", tt.pattern, len(got), tt.wantCount)
+			}
+
+			for _, f := range got {
+				stat, err := os.Stat(f.File.Source)
+				if err != nil {
+					t.Errorf("returned file source path cannot be stat-ed: %v", err)
+				}
+				if stat.IsDir() {
+					t.Errorf("directories should not be included: %s", f.File.Source)
+				}
+			}
+		})
 	}
 }
 
