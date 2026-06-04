@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/k0kubun/pp/v3"
 	. "github.com/r-pufky/voit/config"
 	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
@@ -62,7 +63,7 @@ var rootCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if Cfg.Verbose {
-			fmt.Printf("Parsed Config: %+v [voit: %+v]\n", Cfg, Cfg.Voit())
+			pp.Printf("Parsed Config: %v\nVoit Config: %v\n", Cfg, Cfg.Voit())
 		}
 		if Cfg.Build {
 			fmt.Printf("Version: %s\n", Version)

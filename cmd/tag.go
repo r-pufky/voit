@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/k0kubun/pp/v3"
 	. "github.com/r-pufky/voit/config"
 	"github.com/r-pufky/voit/internal"
 	"github.com/r-pufky/voit/voit"
@@ -69,7 +70,7 @@ var (
 			Cfg.AbsSource = absPath
 
 			if Cfg.Verbose {
-				fmt.Printf("Parsed Config: %+v [voit: %+v]\n", Cfg, Cfg.Voit())
+				pp.Printf("Parsed Config: %v\nVoit Config: %v\n", Cfg, Cfg.Voit())
 			}
 
 			files, err := internal.Scan(Cfg.AbsSource)
@@ -192,6 +193,10 @@ func stageTag(files []*voit.Voit, opts *Opts) {
 					files[i].Mark.Desc.Text = fmt.Sprintf("%d", count)
 				}
 				files[i].Format(&vCfg)
+			}
+
+			if Cfg.Verbose && files[i].Matched {
+				pp.Printf("Matched: %v\n", files[i])
 			}
 		}
 	}

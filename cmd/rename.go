@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/k0kubun/pp/v3"
 	. "github.com/r-pufky/voit/config"
 	"github.com/r-pufky/voit/internal"
 	"github.com/r-pufky/voit/voit"
@@ -62,7 +63,7 @@ var (
 			Cfg.AbsSource = absPath
 
 			if Cfg.Verbose {
-				fmt.Printf("Parsed Config: %+v [voit: %+v]\n", Cfg, Cfg.Voit())
+				pp.Printf("Parsed Config: %v\nVoit Config: %v\n", Cfg, Cfg.Voit())
 			}
 
 			files, err := internal.Scan(Cfg.AbsSource)
@@ -105,7 +106,7 @@ func init() {
 	renameCmd.Flags().BoolVarP(&Cfg.Rename.Strip, "strip", "", false, "Strip matched pattern from description")
 	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoDesc, "no-desc", "", false, "Remove description")
 	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoTags, "no-tags", "", false, "Remove tags")
-	renameCmd.Flags().BoolVarP(&Cfg.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both exist (default: use VTIME if both exist)")
+	renameCmd.Flags().BoolVarP(&Cfg.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both are non-zero (default: use VTIME if both exist)")
 
 	renameCmd.Flags().Bool("photo-ms", false, "YYYYMMDD░HHMMSSSSS      │ Photos, Screenshots (ms)")
 	renameCmd.Flags().Bool("photo", false, "YYYYMMDD░HHMMSS         │ Photos, Screenshots")
@@ -133,21 +134,28 @@ func stageRename(files []*voit.Voit, opts *Opts) {
 
 	for i := range files {
 		files[i].Ingest(&vCfg)
+		hasPTime := !files[i].Orig.PTime.Time.IsZero()
+		hasVTime := !files[i].Orig.VTime.Time.IsZero()
 
-		if !files[i].Orig.PTime.Time.IsZero() {
+		if hasPTime || hasVTime {
 			files[i].Matched = true
 
-			if opts.Rename.PreferPattern && !files[i].Orig.VTime.Time.IsZero() {
+			if opts.Rename.PreferPattern && hasPTime && hasVTime {
 				files[i].Mark.VTime = files[i].Orig.PTime
+				pp.Printf("Date source: PTime (preferred), V: %v, P:%v\n", hasVTime, hasPTime)
+				fmt.Println("prefer pattern")
+			} else if hasVTime {
+				files[i].Mark.VTime = files[i].Orig.VTime
+				pp.Printf("Date source: VTime, V: %v, P:%v\n", hasVTime, hasPTime)
+			} else {
+				files[i].Mark.VTime = files[i].Orig.PTime
+				pp.Printf("Date source: PTime, V: %v, P:%v\n", hasVTime, hasPTime)
 			}
 
 			if opts.Rename.Strip {
 				files[i].Mark.Desc.Text = voit.Strip(files[i].Orig.Desc.Text, vCfg.Pattern)
 				fmt.Printf("%q", files[i].Mark.Desc.Text)
 			}
-		} else if !files[i].Orig.VTime.Time.IsZero() {
-			files[i].Matched = true
-			files[i].Mark.VTime = files[i].Orig.VTime
 		}
 
 		if opts.Rename.NoTags {
@@ -185,6 +193,10 @@ func stageRename(files []*voit.Voit, opts *Opts) {
 				files[i].Mark.Desc.Text = fmt.Sprintf("%d", count)
 			}
 			files[i].Format(&vCfg)
+		}
+
+		if Cfg.Verbose && files[i].Matched {
+			pp.Printf("Matched: %v\n", files[i])
 		}
 	}
 }
