@@ -145,6 +145,7 @@ func TestScan_Globbing(t *testing.T) {
 	tests := []struct {
 		name      string
 		pattern   string
+		IsXMP     bool
 		wantCount int
 	}{
 		{
@@ -200,64 +201,64 @@ func TestScan_Globbing(t *testing.T) {
 
 func TestMultiExt(t *testing.T) {
 	tests := []struct {
-		name         string
-		input        string
-		expectedName string
-		expectedExt  string
+		name     string
+		input    string
+		wantName string
+		wantExt  string
 	}{
 		{
-			name:         "Multi-ext standard match",
-			input:        "photo.tar.gz",
-			expectedName: "photo",
-			expectedExt:  ".tar.gz",
+			name:     "Multi-ext standard match",
+			input:    "photo.tar.gz",
+			wantName: "photo",
+			wantExt:  ".tar.gz",
 		},
 		{
-			name:         "Multi-ext match with directory path",
-			input:        "/var/log/app.min.js",
-			expectedName: "app",
-			expectedExt:  ".min.js",
+			name:     "Multi-ext match with directory path",
+			input:    "/var/log/app.min.js",
+			wantName: "app",
+			wantExt:  ".min.js",
 		},
 		{
-			name:         "Single ext standard match",
-			input:        "document.pdf",
-			expectedName: "document",
-			expectedExt:  ".pdf",
+			name:     "Single ext standard match",
+			input:    "document.pdf",
+			wantName: "document",
+			wantExt:  ".pdf",
 		},
 		{
-			name:         "Single ext with directory path",
-			input:        "images/vacation/sunset.jpg",
-			expectedName: "sunset",
-			expectedExt:  ".jpg",
+			name:     "Single ext with directory path",
+			input:    "images/vacation/sunset.jpg",
+			wantName: "sunset",
+			wantExt:  ".jpg",
 		},
 		{
-			name:         "File with intermediate dots but single extension",
-			input:        "backup.v1.0.zip",
-			expectedName: "backup.v1.0",
-			expectedExt:  ".zip",
+			name:     "File with intermediate dots but single extension",
+			input:    "backup.v1.0.zip",
+			wantName: "backup.v1.0",
+			wantExt:  ".zip",
 		},
 		{
-			name:         "No extension standard file",
-			input:        "README",
-			expectedName: "README",
-			expectedExt:  "",
+			name:     "No extension standard file",
+			input:    "README",
+			wantName: "README",
+			wantExt:  "",
 		},
 		{
-			name:         "No extension file with path",
-			input:        "/usr/local/bin/scratch",
-			expectedName: "scratch",
-			expectedExt:  "",
+			name:     "No extension file with path",
+			input:    "/usr/local/bin/scratch",
+			wantName: "scratch",
+			wantExt:  "",
 		},
 		{
-			name:         "Hidden Unix file (starts with dot)",
-			input:        ".gitignore",
-			expectedName: ".gitignore",
-			expectedExt:  "",
+			name:     "Hidden Unix file (starts with dot)",
+			input:    ".gitignore",
+			wantName: ".gitignore",
+			wantExt:  "",
 		},
 		{
-			name:         "Empty string input",
-			input:        "",
-			expectedName: ".",
-			expectedExt:  "",
+			name:     "Empty string input",
+			input:    "",
+			wantName: ".",
+			wantExt:  "",
 		},
 	}
 
@@ -265,9 +266,9 @@ func TestMultiExt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gotName, gotExt := SplitMultiExt(tt.input)
 
-			if gotName != tt.expectedName || gotExt != tt.expectedExt {
+			if gotName != tt.wantName || gotExt != tt.wantExt {
 				t.Errorf("\nMultiExt(%q)\nGot:  (%q, %q)\nWant: (%q, %q)",
-					tt.input, gotName, gotExt, tt.expectedName, tt.expectedExt)
+					tt.input, gotName, gotExt, tt.wantName, tt.wantExt)
 			}
 		})
 	}
@@ -294,6 +295,62 @@ func TestNew_Success(t *testing.T) {
 	}
 	if fileModel.File.CTime.Location() != time.UTC || fileModel.File.MTime.Location() != time.UTC {
 		t.Error("Expected CTime and MTime to be in UTC")
+	}
+}
+
+func TestNew_SidecarLogic(t *testing.T) {
+	// Create a temporary directory for our test files
+	tmpDir := t.TempDir()
+
+	tests := []struct {
+		name     string
+		filename string
+		wantName string
+		wantExt  string
+	}{
+		{
+			name:     "sanity: valid sidecar [sidecar parsed]",
+			filename: "file.jpg.xmp",
+			wantName: "file",
+			wantExt:  ".jpg.xmp",
+		},
+		{
+			name:     "sanity: xmp with no sidecar [<2 dots]",
+			filename: "file.xmp",
+			wantName: "file",
+			wantExt:  ".xmp",
+		},
+		{
+			name:     "sanity: standard file [jpg parsed]",
+			filename: "file.xmp.jpg",
+			wantName: "file.xmp",
+			wantExt:  ".jpg",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filePath := filepath.Join(tmpDir, tt.filename)
+			err := os.WriteFile(filePath, []byte("dummy data"), 0644)
+			if err != nil {
+				t.Fatalf("failed to create test file: %v", err)
+			}
+
+			v, err := new(filePath)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// Ignore absolute path prefix.
+			actualBaseName := filepath.Base(v.File.Name)
+
+			if actualBaseName != tt.wantName {
+				t.Errorf("Got:  %q\nWant: %q", actualBaseName, tt.wantName)
+			}
+			if v.File.Ext != tt.wantExt {
+				t.Errorf("Got:  %q\nWant %q", v.File.Ext, tt.wantExt)
+			}
+		})
 	}
 }
 

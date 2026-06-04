@@ -142,14 +142,20 @@ func stageRename(files []*voit.Voit, opts *Opts) {
 
 			if opts.Rename.PreferPattern && hasPTime && hasVTime {
 				files[i].Mark.VTime = files[i].Orig.PTime
-				pp.Printf("Date source: PTime (preferred), V: %v, P:%v\n", hasVTime, hasPTime)
-				fmt.Println("prefer pattern")
+				if opts.Verbose {
+					pp.Printf("Date source: PTime (preferred), V: %v, P:%v\n", hasVTime, hasPTime)
+					fmt.Println("prefer pattern")
+				}
 			} else if hasVTime {
 				files[i].Mark.VTime = files[i].Orig.VTime
-				pp.Printf("Date source: VTime, V: %v, P:%v\n", hasVTime, hasPTime)
+				if opts.Verbose {
+					pp.Printf("Date source: VTime, V: %v, P:%v\n", hasVTime, hasPTime)
+				}
 			} else {
 				files[i].Mark.VTime = files[i].Orig.PTime
-				pp.Printf("Date source: PTime, V: %v, P:%v\n", hasVTime, hasPTime)
+				if opts.Verbose {
+					pp.Printf("Date source: PTime, V: %v, P:%v\n", hasVTime, hasPTime)
+				}
 			}
 
 			if opts.Rename.Strip {

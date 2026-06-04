@@ -89,7 +89,9 @@ func SplitMultiExt(f string) (string, string) {
 	return name, ""
 }
 
-// Return new voit.Voit struct based on given source path.
+// Return new voit.Voit struct based on given source path. XMP sidecar files
+// (.{EXT}.xmp) are automatically detected if .xmp exists with two dots in the
+// name.
 func new(f string) (*voit.Voit, error) {
 	source, err := filepath.Abs(f)
 	if err != nil {
@@ -105,6 +107,12 @@ func new(f string) (*voit.Voit, error) {
 	}
 
 	name, ext := SplitMultiExt(source)
+	// Check sidecars (.{IMAGE}.xmp) and reparse {IMAGE} to extension.
+	if strings.ToLower(ext) == ".xmp" && strings.Count(filepath.Base(source), ".") >= 2 {
+		sideCar := filepath.Ext(name)
+		name = strings.TrimSuffix(name, sideCar)
+		ext = sideCar + ext
+	}
 	cTime := info.ModTime().UTC()
 	mTime := info.ModTime().UTC()
 
