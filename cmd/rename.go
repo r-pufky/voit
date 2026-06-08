@@ -118,6 +118,7 @@ func init() {
 	renameCmd.Flags().Bool("8601-naked-ms", false, "YYYYMMDDHHMMSSSSS       │ Naked 8601 (ms)")
 	renameCmd.Flags().Bool("8601-naked", false, "YYYYMMDDHHMMSS          │ Naked 8601")
 	renameCmd.Flags().Bool("webkit-chrome", false, "SSSSSSSSSSSSSSSSS       │ Chrome Webkit Epoch")
+	renameCmd.Flags().Bool("unix", false, "SSSSSSSSSSSSS           │ Unix Epoch")
 	renameCmd.Flags().Bool("voit", false, "YYYY-MM-DDTHH.MM.SS.SSS │ Voit Scheme")
 	renameCmd.Flags().Bool("voit-span", false, "{VOIT}--{VOIT}          │ Voit Scheme date span")
 	renameCmd.Flags().Bool("created", false, "[ctime]                 │ Use file creation date")

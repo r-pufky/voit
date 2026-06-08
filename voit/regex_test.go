@@ -247,6 +247,20 @@ func TestPatterns(t *testing.T) {
 				shouldMatch: false,
 			},
 		},
+		"unix": {
+			{
+				name:           "base",
+				input:          "1325376000",
+				shouldMatch:    true,
+				expectedGroups: []string{"1325376000"},
+			},
+			{
+				name:           "match long (first 13 digits)",
+				input:          "132537600000000000",
+				shouldMatch:    true,
+				expectedGroups: []string{"1325376000000"},
+			},
+		},
 		"voit": {
 			{
 				name:           "base",
@@ -387,6 +401,18 @@ func TestExtract(t *testing.T) {
 			file:     "13253932800000000.dat",
 			pattern:  "webkit-chrome",
 			wantTime: time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:     "unix match",
+			file:     "1262304000.dat",
+			pattern:  "unix",
+			wantTime: time.Date(2010, time.January, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:     "unix match (ms)",
+			file:     "1262304000123.dat",
+			pattern:  "unix",
+			wantTime: time.Date(2010, time.January, 1, 0, 0, 0, 123*int(time.Millisecond), time.UTC),
 		},
 		{
 			name:     "full pattern parse extraction",

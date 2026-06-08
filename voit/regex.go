@@ -47,6 +47,7 @@ var Patterns = map[string]*regexp.Regexp{
 	"8601-short":    regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})(\d{2})`),                                              // YYYY░MM░DD░HHMM
 	"8601":          regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})(\d{2})(\d{2})`),                                       // YYYY░MM░DD░HHMMSS
 	"8601-ms":       regexp.MustCompile(`(\d{4})\D(\d{2})\D(\d{2})\D(\d{2})(\d{2})(\d{2})(\d{3})`),                                // YYYY░MM░DD░HHMMSSSSS
+	"unix":          regexp.MustCompile(`(\d{1,13})`),                                                                             // SSSSSSSSSSSSS Unix Epoch (with MS).
 	"voit":          regexp.MustCompile(`^\s*(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})(?:\.(\d{2})(?:\.(\d{2})(?:\.(\d{3}))?)?)?)?\s*$`), // Voit 8601
 	"voit-span":     regexp.MustCompile(`^\s*(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})(?:\.(\d{2})(?:\.(\d{2})(?:\.(\d{3}))?)?)?)?\s*$`), // Voit 8601 date span (span captured in extract)
 	"webkit-chrome": regexp.MustCompile(`(\d{17})`),                                                                               // SSSSSSSSSSSSSSSSS (https://www.epochconverter.com/webkit)
@@ -81,6 +82,18 @@ func Extract(name string, pattern string) (time.Time, error) {
 		}
 		sec := (ms / MsPerSec) - WebkitEpochOffset
 		return time.Unix(sec, (ms%MsPerSec)*1000).UTC(), nil
+	}
+
+	if pattern == "unix" {
+		epoch, err := strconv.ParseInt(match[1], 10, 64)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("invalid unix format: %s", name)
+		}
+		if len(match[1]) > 10 {
+			return time.UnixMilli(epoch).UTC(), nil
+		}
+
+		return time.Unix(epoch, 0).UTC(), nil
 	}
 
 	return time.Date(
