@@ -204,6 +204,7 @@ func TestVoitIngest(t *testing.T) {
 				},
 				Orig: Meta{
 					VTime: VTime{Time: voitTime},
+					Desc:  Desc{Text: "2026-02-02T12.05.20.700"},
 				},
 			},
 		},
@@ -309,6 +310,7 @@ func TestVoitIngest(t *testing.T) {
 				},
 				Orig: Meta{
 					PTime: VTime{Time: parsedTime},
+					Desc:  Desc{Text: "20260517_104536300"},
 				},
 			},
 		},
@@ -329,6 +331,9 @@ func TestVoitIngest(t *testing.T) {
 					Source: "/tmp/no_match.jpg",
 					Name:   "no_match",
 					Ext:    ".jpg",
+				},
+				Orig: Meta{
+					Desc: Desc{Text: "no_match"},
 				},
 			},
 		},
@@ -459,16 +464,16 @@ func TestDescChomp(t *testing.T) {
 			wantText: "",
 		},
 		{
-			name:     "sanity: no desc invalid separators [empty desc]",
+			name:     "sanity: no desc invalid separators [remaining file name]",
 			fName:    "2026-02-02T12.05.20.700 -- summer vacation beach",
 			wantIdx:  -1,
-			wantText: "",
+			wantText: "2026-02-02T12.05.20.700",
 		},
 		{
-			name:     "sanity: bare vtime [empty desc]",
+			name:     "sanity: bare vtime [remaining file name]",
 			fName:    "2026-02-02T12.05.20.700",
 			wantIdx:  -1,
-			wantText: "",
+			wantText: "2026-02-02T12.05.20.700",
 		},
 		{
 			name:     "sanity: invalid vtime [parsed to desc]",

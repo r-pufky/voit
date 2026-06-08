@@ -48,8 +48,14 @@ func TestStageRename(t *testing.T) {
 						Name:   "invalid_format",
 						Ext:    ".txt",
 					},
+					Orig: voit.Meta{
+						Desc: voit.Desc{Text: "invalid_format"},
+					},
+					Mark: voit.Meta{
+						Desc: voit.Desc{Text: "invalid_format"},
+					},
 					Matched: false,
-					Target:  "/tmp/0001-01-01T00.00.00.000.txt",
+					Target:  "/tmp/0001-01-01T00.00.00.000 invalid_format.txt",
 				},
 			},
 		},

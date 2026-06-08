@@ -169,7 +169,7 @@ func (m *Voit) Format(c *Config) {
 
 // Chomp Description. Name must be base file name (no path or extension).
 // Return index where description sliced from desc separator (-1 for no desc
-// found). Tag separator used for outer bounds.
+// found, which returns remaining name). Tag separator used for outer bounds.
 func (d *Desc) Chomp(name string, dSep string, tSep string) int {
 	if len(dSep) == 0 {
 		dSep = DefaultDescSep
@@ -185,7 +185,7 @@ func (d *Desc) Chomp(name string, dSep string, tSep string) int {
 
 	dIdx := strings.Index(name, dSep)
 	if dIdx == -1 {
-		d.Text = ""
+		d.Text = name // Signal no match and set to entire filename.
 	} else {
 		if tIdx == -1 {
 			d.Text = strings.TrimSpace(name[dIdx+len(dSep):])
