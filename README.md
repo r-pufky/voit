@@ -30,7 +30,11 @@ See command help for full list of options.
 
 ### Rename
 ``` bash
-voit rename -h
+voit rename --photo-ms
+> ...
+> Proposed changes: 1872 file(s).
+> Proceed? (y/n): y
+> Renamed 1960 files in 628.524471ms.
 
 # Rename typical camera photos, one with existing tags in current directory.
 voit rename --photo-ms

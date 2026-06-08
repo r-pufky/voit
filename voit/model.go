@@ -57,6 +57,7 @@ var MultiExts = []string{
 type Config struct {
 	Format  string // VTime time format.
 	Pattern string // Regex matching pattern.
+	Set     string // Set static VTime time format (set option).
 	SSep    string // VTime span separator.
 	DSep    string // Desc separator.
 	TSep    string // Tag separator.
@@ -105,6 +106,7 @@ func NewConfig() Config {
 	return Config{
 		Format:  DefaultVFormat,
 		Pattern: DefaultPattern,
+		Set:     "",
 		SSep:    DefaultSpanSep,
 		DSep:    DefaultDescSep,
 		TSep:    DefaultTagsSep,
@@ -136,6 +138,11 @@ func (f *Voit) Ingest(c *Config) {
 		f.Orig.PTime.Time = f.File.CTime
 	case "modified":
 		f.Orig.PTime.Time = f.File.MTime
+	case "set":
+		f.Orig.PTime.Time, err = Extract(c.Set, "voit")
+		if err != nil {
+			f.Orig.PTime.Time = time.Time{}
+		}
 	default:
 		f.Orig.PTime.Time, err = Extract(f.File.Name, c.Pattern)
 		if err != nil {

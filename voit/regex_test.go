@@ -442,6 +442,14 @@ func TestExtract(t *testing.T) {
 			wantErr:     true,
 			errContains: "no date pattern matched",
 		},
+		{
+			name:        "no match [set]",
+			file:        "anything.txt",
+			pattern:     "modified",
+			wantTime:    time.Time{},
+			wantErr:     true,
+			errContains: "no date pattern matched",
+		},
 	}
 
 	for _, tt := range tests {

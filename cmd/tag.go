@@ -79,7 +79,7 @@ var (
 			}
 
 			if len(files) == 0 {
-				fmt.Println("No files matched the known datetime formats.")
+				fmt.Println("No files matched the known datetime formats (is globbing quoted?).")
 				os.Exit(0)
 			}
 

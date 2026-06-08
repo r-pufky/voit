@@ -53,6 +53,7 @@ var Patterns = map[string]*regexp.Regexp{
 	"webkit-chrome": regexp.MustCompile(`(\d{17})`),                                                                               // SSSSSSSSSSSSSSSSS (https://www.epochconverter.com/webkit)
 	"created":       regexp.MustCompile(`[^\s\S]`),                                                                                // Never match
 	"modified":      regexp.MustCompile(`[^\s\S]`),                                                                                // Never match
+	"set":           regexp.MustCompile(`^\s*(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})(?:\.(\d{2})(?:\.(\d{2})(?:\.(\d{3}))?)?)?)?\s*$`), // Voit 8601
 }
 
 // ----------------------------------------------------------------------------

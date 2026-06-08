@@ -624,7 +624,7 @@ func TestResolveFSCollisions(t *testing.T) {
 				t.Errorf("expected returned path %q to not exist, but it does", result)
 			}
 
-			expectedFullOutput := fmt.Sprintf("%s%s", tt.wantOutput, result)
+			expectedFullOutput := fmt.Sprintf("%s%s\n", tt.wantOutput, result)
 			if buf.String() != expectedFullOutput {
 				t.Errorf("expected output %q, got %q", expectedFullOutput, buf.String())
 			}

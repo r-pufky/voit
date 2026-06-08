@@ -19,6 +19,7 @@ type Opts struct {
 
 type RenameOpts struct {
 	Pattern       string `mapstructure:"pattern"`
+	Set           string `mapstructure:"set"`
 	Strip         bool   `mapstructure:"strip"`
 	NoDesc        bool   `mapstructure:"no-desc"`
 	NoTags        bool   `mapstructure:"no-tags"`
@@ -53,6 +54,9 @@ func (o Opts) Voit() voit.Config {
 	}
 	c.Lower = o.Lower
 
+	if o.Rename.Set != "" {
+		c.Set = o.Rename.Set
+	}
 	if o.Rename.Pattern != "" {
 		c.Pattern = o.Rename.Pattern
 	} else {

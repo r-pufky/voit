@@ -21,7 +21,7 @@ func Scan(f string) ([]*voit.Voit, error) {
 
 	matches, err := filepath.Glob(f)
 	if err != nil {
-		return nil, fmt.Errorf("invalid glob pattern: %w", err)
+		return nil, fmt.Errorf("invalid glob pattern: %w\n", err)
 	}
 
 	// Bare directories require globbing: /tmp ➔ /tmp/*.
@@ -163,7 +163,7 @@ func Rename(w io.Writer, files []*voit.Voit, overwrite bool, verbose bool) {
 			if !overwrite {
 				if _, err := os.Stat(target); err == nil {
 					if verbose {
-						fmt.Fprintf(w, "Collision: %s", target)
+						fmt.Fprintf(w, "Collision: %s\n", target)
 					}
 					target = resolveFSCollisions(w, target)
 				}
@@ -188,7 +188,7 @@ func resolveFSCollisions(w io.Writer, path string) string {
 	for {
 		uniquePath = fmt.Sprintf("%s_%d%s", name, counter, ext)
 		if _, err := os.Stat(uniquePath); os.IsNotExist(err) {
-			fmt.Fprintf(w, "Collision (new target): %s", uniquePath)
+			fmt.Fprintf(w, "Collision (new target): %s\n", uniquePath)
 			break
 		}
 		counter++

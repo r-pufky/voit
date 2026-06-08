@@ -12,6 +12,7 @@ import (
 var (
 	fixedCTime = time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC)
 	fixedMTime = time.Date(2026, time.February, 1, 14, 0, 0, 0, time.UTC)
+	fixedSTime = time.Date(2026, time.March, 1, 20, 0, 0, 0, time.UTC)
 	parsedTime = time.Date(2026, time.May, 17, 10, 45, 36, 300000000, time.UTC)
 	voitTime   = time.Date(2026, time.February, 2, 12, 5, 20, 700000000, time.UTC)
 
@@ -126,6 +127,46 @@ func TestStageRename(t *testing.T) {
 					},
 					Matched: true,
 					Target:  "/tmp/2026-05-17T10.45.36.300 beach vacation -- summer vacation beach.jpg",
+				},
+			},
+		},
+		{
+			name: "set: [ptime match with explicit date set]",
+			opts: &Opts{
+				Rename: RenameOpts{
+					Set:     "2026-03-01T20.00.00.000",
+					Pattern: "set",
+				},
+			},
+			f: []*voit.Voit{
+				{
+					File: voit.File{
+						Source: "/tmp/2026-02-02T12.05.20.700 20260517_104536300 beach vacation -- summer vacation beach.jpg",
+						Name:   "2026-02-02T12.05.20.700 20260517_104536300 beach vacation -- summer vacation beach",
+						Ext:    ".jpg",
+					},
+				},
+			},
+			wantVoit: []voit.Voit{
+				{
+					File: voit.File{
+						Source: "/tmp/2026-02-02T12.05.20.700 20260517_104536300 beach vacation -- summer vacation beach.jpg",
+						Name:   "2026-02-02T12.05.20.700 20260517_104536300 beach vacation -- summer vacation beach",
+						Ext:    ".jpg",
+					},
+					Orig: voit.Meta{
+						VTime: voit.VTime{Time: voitTime},
+						PTime: voit.VTime{Time: fixedSTime},
+						Tags:  voit.Tag{Items: baseTags},
+						Desc:  voit.Desc{Text: "20260517_104536300 beach vacation"},
+					},
+					Mark: voit.Meta{
+						VTime: voit.VTime{Time: fixedSTime},
+						Tags:  voit.Tag{Items: baseTags},
+						Desc:  voit.Desc{Text: "20260517_104536300 beach vacation"},
+					},
+					Matched: true,
+					Target:  "/tmp/2026-03-01T20.00.00.000 20260517_104536300 beach vacation -- summer vacation beach.jpg",
 				},
 			},
 		},

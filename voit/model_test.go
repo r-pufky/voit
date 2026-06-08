@@ -9,6 +9,7 @@ import (
 var (
 	fixedCTime = time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC)
 	fixedMTime = time.Date(2026, time.February, 1, 14, 0, 0, 0, time.UTC)
+	fixedSTime = time.Date(2026, time.March, 1, 20, 0, 0, 0, time.UTC)
 	parsedTime = time.Date(2026, time.May, 17, 10, 45, 36, 300000000, time.UTC)
 	voitTime   = time.Date(2026, time.February, 2, 12, 5, 20, 700000000, time.UTC)
 
@@ -256,6 +257,33 @@ func TestVoitIngest(t *testing.T) {
 				Orig: Meta{
 					VTime: VTime{Time: voitTime},
 					PTime: VTime{Time: fixedMTime},
+					Tags:  Tag{Items: baseTags},
+					Desc:  Desc{Text: baseDesc},
+				},
+			},
+		},
+		{
+			name: "patterns: set",
+			f: &Voit{
+				File: File{
+					Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
+					Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
+					Ext:    ".jpg",
+				},
+			},
+			c: Config{
+				Pattern: "set",
+				Set:     "2026-03-01T20.00.00.000",
+			},
+			wantVoit: &Voit{
+				File: File{
+					Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
+					Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
+					Ext:    ".jpg",
+				},
+				Orig: Meta{
+					VTime: VTime{Time: voitTime},
+					PTime: VTime{Time: fixedSTime},
 					Tags:  Tag{Items: baseTags},
 					Desc:  Desc{Text: baseDesc},
 				},

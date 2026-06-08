@@ -22,7 +22,6 @@ Rename files according to file name & attribute dates.
   {VTIME} {DESC} -- {TAGS}.{EXT}
 
 Target files are automatically differentiated if there are name collisions.
-NOTE: Pattern flag is overridden if specified in config.
 `
 
 var (
@@ -42,11 +41,14 @@ var (
 					break
 				}
 			}
+			if Cfg.Rename.Set != "" {
+				Cfg.Rename.Pattern = "set"
+			}
 		},
 
 		Run: func(cmd *cobra.Command, args []string) {
 			if Cfg.Rename.Pattern == "" {
-				log.Fatal("a rename pattern must be specified via flags (e.g., --photo-ms) or within your config file.")
+				log.Fatal("a rename pattern must be specified via flags or config file (e.g., --photo-ms) or explicitly set VTIME (--set).")
 			}
 
 			if Cfg.AbsSource == "" {
@@ -72,7 +74,7 @@ var (
 			}
 
 			if len(files) == 0 {
-				fmt.Println("No files matched the known datetime formats.")
+				fmt.Println("No files matched the known datetime formats (is globbing quoted?).")
 				os.Exit(0)
 			}
 
@@ -107,6 +109,7 @@ func init() {
 	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoDesc, "no-desc", "", false, "Remove description")
 	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoTags, "no-tags", "", false, "Remove tags")
 	renameCmd.Flags().BoolVarP(&Cfg.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both are non-zero (default: use VTIME if both exist)")
+	renameCmd.Flags().StringVarP(&Cfg.Rename.Set, "set", "e", "", "Explicitly set VTIME (see --format)")
 
 	renameCmd.Flags().Bool("photo-ms", false, "YYYYMMDD░HHMMSSSSS      │ Photos, Screenshots (ms)")
 	renameCmd.Flags().Bool("photo", false, "YYYYMMDD░HHMMSS         │ Photos, Screenshots")
@@ -120,7 +123,7 @@ func init() {
 	renameCmd.Flags().Bool("webkit-chrome", false, "SSSSSSSSSSSSSSSSS       │ Chrome Webkit Epoch")
 	renameCmd.Flags().Bool("unix", false, "SSSSSSSSSSSSS           │ Unix Epoch")
 	renameCmd.Flags().Bool("voit", false, "YYYY-MM-DDTHH.MM.SS.SSS │ Voit Scheme")
-	renameCmd.Flags().Bool("voit-span", false, "{VOIT}--{VOIT}          │ Voit Scheme date span")
+	renameCmd.Flags().Bool("voit-span", false, "{VTIME}--{VTIME}        │ Voit Scheme date span")
 	renameCmd.Flags().Bool("created", false, "[ctime]                 │ Use file creation date")
 	renameCmd.Flags().Bool("modified", false, "[modtime]               │ Use file modification date")
 	renameCmd.MarkFlagsMutuallyExclusive(slices.Collect(maps.Keys(voit.Patterns))...)
@@ -137,10 +140,14 @@ func stageRename(files []*voit.Voit, opts *Opts) {
 		files[i].Ingest(&vCfg)
 		hasPTime := !files[i].Orig.PTime.Time.IsZero()
 		hasVTime := !files[i].Orig.VTime.Time.IsZero()
+		isSet := opts.Rename.Set != ""
 
-		if hasPTime || hasVTime {
-			files[i].Matched = true
-
+		if isSet {
+			files[i].Mark.VTime = files[i].Orig.PTime
+			if opts.Verbose {
+				pp.Printf("Date source: Set (PTime), V: %v, P:%v\n", hasVTime, hasPTime)
+			}
+		} else if hasPTime || hasVTime {
 			if opts.Rename.PreferPattern && hasPTime && hasVTime {
 				files[i].Mark.VTime = files[i].Orig.PTime
 				if opts.Verbose {
@@ -158,10 +165,13 @@ func stageRename(files []*voit.Voit, opts *Opts) {
 					pp.Printf("Date source: PTime, V: %v, P:%v\n", hasVTime, hasPTime)
 				}
 			}
+		}
+
+		if isSet || hasPTime || hasVTime {
+			files[i].Matched = true
 
 			if opts.Rename.Strip {
 				files[i].Mark.Desc.Text = voit.Strip(files[i].Orig.Desc.Text, vCfg.Pattern)
-				fmt.Printf("%q", files[i].Mark.Desc.Text)
 			}
 		}
 
