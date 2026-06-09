@@ -155,7 +155,7 @@ func new(f string) (*voit.Voit, error) {
 // Rename files marked as Matched using File.Source and Mark.Target resolving
 // collisions unless overwrite is enabled.
 func Rename(w io.Writer, files []*voit.Voit, overwrite bool, verbose bool) {
-	defer timeAction(w, time.Now(), len(files))
+	defer timeAction(w, time.Now())
 	for _, f := range files {
 		if f.Matched {
 			target := f.Target
@@ -197,7 +197,7 @@ func resolveFSCollisions(w io.Writer, path string) string {
 }
 
 // Time file actions. Defer timeAction(w, time.Now(), len(files))
-func timeAction(w io.Writer, start time.Time, count int) {
+func timeAction(w io.Writer, start time.Time) {
 	elapsed := time.Since(start)
-	fmt.Fprintf(w, "Renamed %d files in %s.\n", count, elapsed)
+	fmt.Fprintf(w, "Renamed in %s.\n", elapsed)
 }

@@ -443,7 +443,7 @@ func TestExecuteRename(t *testing.T) {
 				if _, err := os.Stat(files[0].File.Source); os.IsNotExist(err) {
 					t.Errorf("Expected source file to remain untouched, but it was deleted or moved")
 				}
-				if !strings.Contains(output, "Renamed 1 files") {
+				if !strings.Contains(output, "Renamed in") {
 					t.Errorf("Expected summary metric message, got: %q", output)
 				}
 			},
