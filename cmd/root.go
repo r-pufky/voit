@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/k0kubun/pp/v3"
-	. "github.com/r-pufky/voit/config"
 	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,42 +29,44 @@ var (
 )
 
 func init() {
-	loadUserConfig()
 	rootCmd.PersistentFlags().SortFlags = false
 
-	rootCmd.PersistentFlags().StringVarP(&Cfg.AbsSource, "source", "s", "", "Source path for renaming files [globbing supported, use quotes to prevent shell expansion] (default: current directory)")
-	rootCmd.PersistentFlags().StringVarP(&Cfg.TagSep, "tag-sep", "", voit.DefaultTagsSep, "Tag separator")
-	rootCmd.PersistentFlags().StringVarP(&Cfg.DescSep, "desc-sep", "", voit.DefaultDescSep, "Description separator")
-	rootCmd.PersistentFlags().StringVarP(&Cfg.SpanSep, "span-sep", "", voit.DefaultSpanSep, "VTIME date span separator")
-	rootCmd.PersistentFlags().StringVarP(&Cfg.Format, "format", "", voit.DefaultVFormat, "VTIME format")
-	rootCmd.PersistentFlags().BoolVarP(&Cfg.Verbose, "verbose", "v", false, "Show verbose information")
-	rootCmd.PersistentFlags().BoolVarP(&Cfg.Yes, "yes", "y", false, "Automatically confirm operations")
-	rootCmd.PersistentFlags().BoolVarP(&Cfg.Lower, "lower", "l", false, "Lowercase description and extension")
-	rootCmd.PersistentFlags().BoolVarP(&Cfg.Overwrite, "overwrite", "", false, "Overwrite existing target files (DANGEROUS)")
+	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.AbsSource, "source", "s", "", "Source path for renaming files [globbing supported, use quotes to prevent shell expansion] (default: current directory)")
+	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.TagSep, "tag-sep", "", voit.DefaultTagsSep, "Tag separator")
+	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.DescSep, "desc-sep", "", voit.DefaultDescSep, "Description separator")
+	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.SpanSep, "span-sep", "", voit.DefaultSpanSep, "VTIME date span separator")
+	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.Format, "format", "", voit.DefaultVFormat, "VTIME format")
+	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Verbose, "verbose", "v", false, "Show verbose information")
+	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Yes, "yes", "y", false, "Automatically confirm operations")
+	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Lower, "lower", "l", false, "Lowercase description and extension")
+	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Overwrite, "overwrite", "", false, "Overwrite existing target files (DANGEROUS)")
 
-	rootCmd.Flags().BoolVarP(&Cfg.Build, "build", "b", false, "Show build version.")
+	rootCmd.Flags().BoolVarP(&voit.Cfg.Build, "build", "b", false, "Show build version.")
 }
 
 var rootCmd = &cobra.Command{
 	Use:   "voit",
 	Short: "Voit file naming utility.",
 	Long:  rootLong,
+	// Run before all subcommands unless PersistentPreRunE is re-defined.
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		loadUserConfig()
+
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
 			return err
 		}
 
-		if err := viper.Unmarshal(&Cfg); err != nil {
+		if err := viper.Unmarshal(&voit.Cfg); err != nil {
 			return fmt.Errorf("unable to decode into struct: %w", err)
 		}
 
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if Cfg.Verbose {
-			pp.Printf("Parsed Config: %v\nVoit Config: %v\n", Cfg, Cfg.Voit())
+		if voit.Cfg.Verbose {
+			pp.Printf("Parsed Config: %v\nVoit Config: %v\n", voit.Cfg, voit.Cfg.Voit())
 		}
-		if Cfg.Build {
+		if voit.Cfg.Build {
 			fmt.Printf("Version: %s\n", Version)
 			os.Exit(0)
 		}

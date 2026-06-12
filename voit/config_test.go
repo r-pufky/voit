@@ -1,33 +1,31 @@
-package config
+package voit
 
 import (
 	"reflect"
 	"testing"
-
-	"github.com/r-pufky/voit/voit"
 )
 
 func TestVoit(t *testing.T) {
 	tests := []struct {
 		name string
-		opts Opts
-		want voit.Config
+		opts *Opts
+		want Config
 	}{
 		{
 			name: "sanity: empty defaults [pattern: voit]",
-			opts: Opts{},
-			want: voit.Config{
-				Format:  voit.DefaultVFormat,
+			opts: &Opts{},
+			want: Config{
+				Format:  DefaultVFormat,
 				Pattern: "voit",
-				SSep:    voit.DefaultSpanSep,
-				DSep:    voit.DefaultDescSep,
-				TSep:    voit.DefaultTagsSep,
+				SSep:    DefaultSpanSep,
+				DSep:    DefaultDescSep,
+				TSep:    DefaultTagsSep,
 				Lower:   false,
 			},
 		},
 		{
 			name: "sanity: non-default values",
-			opts: Opts{
+			opts: &Opts{
 				Format:  "15:04",
 				SpanSep: "->",
 				DescSep: "|",
@@ -37,7 +35,7 @@ func TestVoit(t *testing.T) {
 					Pattern: "photo-ms",
 				},
 			},
-			want: voit.Config{
+			want: Config{
 				Format:  "15:04",
 				Pattern: "photo-ms",
 				SSep:    "->",
@@ -48,15 +46,15 @@ func TestVoit(t *testing.T) {
 		},
 		{
 			name: "sanity: partial set [default values used elsewhere]",
-			opts: Opts{
+			opts: &Opts{
 				Format: "2006",
 			},
-			want: voit.Config{
+			want: Config{
 				Format:  "2006",
 				Pattern: "voit",
-				SSep:    voit.DefaultSpanSep,
-				DSep:    voit.DefaultDescSep,
-				TSep:    voit.DefaultTagsSep,
+				SSep:    DefaultSpanSep,
+				DSep:    DefaultDescSep,
+				TSep:    DefaultTagsSep,
 				Lower:   false,
 			},
 		},
@@ -71,3 +69,6 @@ func TestVoit(t *testing.T) {
 		})
 	}
 }
+
+// Simple logic requires no testing.
+func TestValidateNOOP(t *testing.T) {}

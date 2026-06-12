@@ -1,17 +1,15 @@
-package internal
+package voit
 
 import (
 	"bytes"
 	"strings"
 	"testing"
-
-	"github.com/r-pufky/voit/voit"
 )
 
 func TestDisplayPending(t *testing.T) {
-	files := []*voit.Voit{
+	files := VoitFiles{
 		{
-			File: voit.File{
+			File: File{
 				Source: "img1.jpg",
 				Ext:    ".jpg",
 				Width:  8,
@@ -20,7 +18,7 @@ func TestDisplayPending(t *testing.T) {
 			Matched: true,
 		},
 		{
-			File: voit.File{
+			File: File{
 				Source: "a.jpg",
 				Ext:    ".jpg",
 				Width:  5,
@@ -32,7 +30,7 @@ func TestDisplayPending(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 
-	count := DisplayPending(buf, files)
+	count := files.DisplayPending(buf)
 
 	out := buf.String()
 	expected1 := "img1.jpg ➔ 2023-01-01T12.00.00.000.jpg"
@@ -65,10 +63,10 @@ func TestConfirm(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			input := strings.NewReader(tt.input)
-			output := &bytes.Buffer{}
+			r := strings.NewReader(tt.input)
+			w := &bytes.Buffer{}
 
-			got := Confirm(input, output)
+			got := Confirm(w, r)
 
 			if got != tt.want {
 				t.Errorf("Confirm() = %v, want %v", got, tt.want)
@@ -76,3 +74,6 @@ func TestConfirm(t *testing.T) {
 		})
 	}
 }
+
+// Simple logic requires no testing.
+func TestPromptRenameNOOP(t *testing.T) {}

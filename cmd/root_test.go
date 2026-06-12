@@ -1,5 +1,7 @@
 package cmd
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestRootNOOP(t *testing.T) {}

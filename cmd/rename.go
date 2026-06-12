@@ -1,16 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"maps"
 	"os"
-	"path/filepath"
 	"slices"
 
-	"github.com/k0kubun/pp/v3"
-	. "github.com/r-pufky/voit/config"
-	"github.com/r-pufky/voit/internal"
 	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -25,8 +20,6 @@ Target files are automatically differentiated if there are name collisions.
 `
 
 var (
-	pattern string
-
 	renameCmd = &cobra.Command{
 		Use:     "rename",
 		Short:   "Rename files according to file name & attribute dates",
@@ -34,69 +27,34 @@ var (
 		Example: "  voit rename -s ./photos --photo-ms\n  voit rename -s image.jpg -l",
 
 		PreRun: func(cmd *cobra.Command, args []string) {
-			// Resolve all patterns to pattern variable using option name.
+			// Resolve all pattern flags to pattern variable using option name.
 			for _, opt := range slices.Collect(maps.Keys(voit.Patterns)) {
 				if cmd.Flags().Changed(opt) {
-					Cfg.Rename.Pattern = opt
+					voit.Cfg.Rename.Pattern = opt
 					break
 				}
 			}
-			if Cfg.Rename.Set != "" {
-				Cfg.Rename.Pattern = "set"
+			if voit.Cfg.Rename.Set != "" {
+				voit.Cfg.Rename.Pattern = "set"
 			}
 		},
 
 		Run: func(cmd *cobra.Command, args []string) {
-			if Cfg.Rename.Pattern == "" {
+			if err := voit.Cfg.Validate(); err != nil {
+				log.Fatalf("Validate: %v", err)
+			}
+
+			if voit.Cfg.Rename.Pattern == "" {
 				log.Fatal("a rename pattern must be specified via flags or config file (e.g., --photo-ms) or explicitly set VTIME (--set).")
 			}
 
-			if Cfg.AbsSource == "" {
-				var err error
-				Cfg.AbsSource, err = os.Getwd()
-				if err != nil {
-					log.Fatalf("unable to get current working directory (%v).", err)
-				}
-			}
-			absPath, err := filepath.Abs(Cfg.AbsSource)
-			if err != nil {
-				log.Fatalf("source does not exist (%v).", Cfg.AbsSource)
-			}
-			Cfg.AbsSource = absPath
-
-			if Cfg.Verbose {
-				pp.Printf("Parsed Config: %v\nVoit Config: %v\n", Cfg, Cfg.Voit())
-			}
-
-			files, err := internal.Scan(Cfg.AbsSource)
+			files, err := voit.Scan(voit.Cfg.AbsSource)
 			if err != nil {
 				log.Fatalf("Unable to complete source file scan: %v", err)
 			}
 
-			if len(files) == 0 {
-				fmt.Println("No files matched the known datetime formats (is globbing quoted?).")
-				os.Exit(0)
-			}
-
-			stageRename(files, &Cfg)
-
-			count := internal.DisplayPending(os.Stdout, files)
-			if count != 0 {
-				if Cfg.Overwrite {
-					fmt.Printf("\nProposed changes (OVERWRITE ENABLED): %d file(s).\n", count)
-				} else {
-					fmt.Printf("\nProposed changes: %d file(s).\n", count)
-				}
-
-				if !Cfg.Yes && !internal.Confirm(os.Stdin, os.Stdout) {
-					fmt.Println("Operation aborted by user.")
-					os.Exit(0)
-				}
-
-				internal.Rename(os.Stdout, files, Cfg.Overwrite, Cfg.Verbose)
-			} else {
-				fmt.Println("No files matched proposed changes.")
-			}
+			files.StageRename(os.Stdout, &voit.Cfg)
+			files.PromptRename(os.Stdout, os.Stdin, &voit.Cfg)
 		},
 	}
 )
@@ -105,11 +63,11 @@ func init() {
 	renameCmd.Flags().SortFlags = false
 	rootCmd.AddCommand(renameCmd)
 
-	renameCmd.Flags().BoolVarP(&Cfg.Rename.Strip, "strip", "", false, "Strip matched pattern from description")
-	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoDesc, "no-desc", "", false, "Remove description")
-	renameCmd.Flags().BoolVarP(&Cfg.Rename.NoTags, "no-tags", "", false, "Remove tags")
-	renameCmd.Flags().BoolVarP(&Cfg.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both are non-zero (default: use VTIME if both exist)")
-	renameCmd.Flags().StringVarP(&Cfg.Rename.Set, "set", "e", "", "Explicitly set VTIME (see --format)")
+	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.Strip, "strip", "", false, "Strip matched pattern from description")
+	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.NoDesc, "no-desc", "", false, "Remove description")
+	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.NoTags, "no-tags", "", false, "Remove tags")
+	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both are non-zero (default: use VTIME if both exist)")
+	renameCmd.Flags().StringVarP(&voit.Cfg.Rename.Set, "set", "e", "", "Explicitly set VTIME (see --format)")
 
 	renameCmd.Flags().Bool("photo-ms", false, "YYYYMMDD░HHMMSSSSS      │ Photos, Screenshots (ms)")
 	renameCmd.Flags().Bool("photo", false, "YYYYMMDD░HHMMSS         │ Photos, Screenshots")
@@ -129,91 +87,4 @@ func init() {
 	renameCmd.MarkFlagsMutuallyExclusive(slices.Collect(maps.Keys(voit.Patterns))...)
 
 	viper.BindPFlags(rootCmd.Flags())
-}
-
-// Process files from given source path and stage rename transformations.
-func stageRename(files []*voit.Voit, opts *Opts) {
-	collisions := make(map[string]int)
-	vCfg := opts.Voit()
-
-	for i := range files {
-		files[i].Ingest(&vCfg)
-		hasPTime := !files[i].Orig.PTime.Time.IsZero()
-		hasVTime := !files[i].Orig.VTime.Time.IsZero()
-		isSet := opts.Rename.Set != ""
-
-		if isSet {
-			files[i].Mark.VTime = files[i].Orig.PTime
-			if opts.Verbose {
-				pp.Printf("Date source: Set (PTime), V: %v, P:%v\n", hasVTime, hasPTime)
-			}
-		} else if hasPTime || hasVTime {
-			if opts.Rename.PreferPattern && hasPTime && hasVTime {
-				files[i].Mark.VTime = files[i].Orig.PTime
-				if opts.Verbose {
-					pp.Printf("Date source: PTime (preferred), V: %v, P:%v\n", hasVTime, hasPTime)
-					fmt.Println("prefer pattern")
-				}
-			} else if hasVTime {
-				files[i].Mark.VTime = files[i].Orig.VTime
-				if opts.Verbose {
-					pp.Printf("Date source: VTime, V: %v, P:%v\n", hasVTime, hasPTime)
-				}
-			} else {
-				files[i].Mark.VTime = files[i].Orig.PTime
-				if opts.Verbose {
-					pp.Printf("Date source: PTime, V: %v, P:%v\n", hasVTime, hasPTime)
-				}
-			}
-		}
-
-		if isSet || hasPTime || hasVTime {
-			files[i].Matched = true
-
-			if opts.Rename.Strip {
-				files[i].Mark.Desc.Text = voit.Strip(files[i].Orig.Desc.Text, vCfg.Pattern)
-			}
-		}
-
-		if opts.Rename.NoTags {
-			files[i].Mark.Tags.Items = []string{}
-		} else {
-			files[i].Mark.Tags = files[i].Orig.Tags
-		}
-
-		if opts.Rename.NoDesc {
-			files[i].Mark.Desc.Text = ""
-		} else if !opts.Rename.Strip { // Only update if not stripped.
-			files[i].Mark.Desc = files[i].Orig.Desc
-		}
-
-		desc := files[i].Mark.Desc.Text
-		files[i].Format(&vCfg)
-
-		for {
-			if _, exists := collisions[files[i].Target]; !exists {
-				collisions[files[i].Target] = 1
-				break // No Collision.
-			}
-
-			count := collisions[files[i].Target]
-			collisions[files[i].Target]++
-
-			if desc != "" {
-				// Standard collision.
-				files[i].Mark.Desc.Text = fmt.Sprintf("%s_%d", desc, count)
-			} else if len(files[i].Mark.Tags.Items) > 0 {
-				// No description, tags.
-				files[i].Mark.Desc.Text = fmt.Sprintf("%d", count)
-			} else {
-				// No description, no tags.
-				files[i].Mark.Desc.Text = fmt.Sprintf("%d", count)
-			}
-			files[i].Format(&vCfg)
-		}
-
-		if Cfg.Verbose && files[i].Matched {
-			pp.Printf("Matched: %v\n", files[i])
-		}
-	}
 }

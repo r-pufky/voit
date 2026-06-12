@@ -6,6 +6,17 @@ import (
 	"time"
 )
 
+func containsString(str, substr string) bool {
+	return len(str) >= len(substr) && func() bool {
+		for i := 0; i <= len(str)-len(substr); i++ {
+			if str[i:i+len(substr)] == substr {
+				return true
+			}
+		}
+		return false
+	}()
+}
+
 func TestVoitRegex(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -91,15 +102,13 @@ func TestVoitRegex(t *testing.T) {
 	}
 }
 
-type regexTestCase struct {
-	name           string
-	input          string
-	shouldMatch    bool
-	expectedGroups []string
-}
-
 func TestPatterns(t *testing.T) {
-	tests := map[string][]regexTestCase{
+	tests := map[string][]struct {
+		name           string
+		input          string
+		shouldMatch    bool
+		expectedGroups []string
+	}{
 		"photo-ms": {
 			{
 				name:           "base",
@@ -510,15 +519,4 @@ func TestStrip(t *testing.T) {
 			}
 		})
 	}
-}
-
-func containsString(str, substr string) bool {
-	return len(str) >= len(substr) && func() bool {
-		for i := 0; i <= len(str)-len(substr); i++ {
-			if str[i:i+len(substr)] == substr {
-				return true
-			}
-		}
-		return false
-	}()
 }

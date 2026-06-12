@@ -6,6 +6,7 @@ require (
 	github.com/k0kubun/pp/v3 v3.5.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
+	trimmer.io/go-xmp v0.0.0-20200923092433-f9b6ca6c4a87
 )
 
 require (

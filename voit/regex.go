@@ -56,9 +56,6 @@ var Patterns = map[string]*regexp.Regexp{
 	"set":           regexp.MustCompile(`^\s*(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})(?:\.(\d{2})(?:\.(\d{2})(?:\.(\d{3}))?)?)?)?\s*$`), // Voit 8601
 }
 
-// ----------------------------------------------------------------------------
-// Regex.
-
 // Extract time object from given string and filter.
 func Extract(name string, pattern string) (time.Time, error) {
 	match := Patterns[pattern].FindStringSubmatch(name)
