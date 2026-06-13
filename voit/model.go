@@ -51,12 +51,13 @@ var MultiExts = []string{
 }
 
 type VoitFiles []*Voit
+type FileMap map[string]*LinkedFiles
 
 // Sidecar file mapping.
-// type LinkedFiles struct {
-// 	File    *Voit // File ({NAME}.{EXT}).
-// 	Sidecar *Voit // Sidecar ({NAME}.{EXT}.xmp) for File.
-//}
+type LinkedFiles struct {
+	File    *Voit // File ({NAME}.{EXT}).
+	Sidecar *Voit // Sidecar ({NAME}.{EXT}.xmp) for File.
+}
 
 type Config struct {
 	Format  string // VTime time format.

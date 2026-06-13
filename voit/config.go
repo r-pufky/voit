@@ -34,12 +34,12 @@ type RenameOpts struct {
 }
 
 type TagOpts struct {
-	Add    []string `mapstructure:"add"`
-	Remove []string `mapstructure:"remove"`
-	Set    []string `mapstructure:"set"`
-	Select []string `mapstructure:"select"`
-	// SyncXMP bool     `mapstructure:"sync-xmp"`
-	Delete bool `mapstructure:"delete"`
+	Add     []string `mapstructure:"add"`
+	Remove  []string `mapstructure:"remove"`
+	Set     []string `mapstructure:"set"`
+	Select  []string `mapstructure:"select"`
+	SyncXMP bool     `mapstructure:"sync-xmp"`
+	Delete  bool     `mapstructure:"delete"`
 }
 
 var Cfg Opts

@@ -18,10 +18,17 @@ Manage filenames using Karl Voit's Managing Digital Files scheme.
   {VTIME} {DESC} -- {TAGS}.{EXT}
 
 Read about structure and PhD thesis:
+
   https://karl-voit.at/folder-hierarchy
   https://karl-voit.at/tagstore/en/papers.shtml
+
 Source: https://github.com/r-pufky/voit
-Set default options in: ~/.config/voit.toml (see README.md)
+
+Default options: ~/.config/voit.toml (see README.md)
+
+Use quotes when globbing source files. Certain shells will expand globs
+before passing arguments to binaries resulting in unexpected behavior.
+Wrapping the path in quotes prevents the user shell from expanding these.
 `
 
 var (

@@ -360,7 +360,7 @@ func TestStageTag(t *testing.T) {
 
 			// DeepEqual will compare memory addresses if pointers, not values.
 			// Convert to value. This is required as pointers are needed to update
-			// the struct in place during stageRename.
+			// the struct in place during stageTag.
 			got := make([]Voit, len(tt.f))
 			for i, ptr := range tt.f {
 				if ptr != nil {

@@ -22,7 +22,7 @@ var (
 		Use:     "tag",
 		Short:   "tag files according to filters",
 		Long:    tagLong,
-		Example: "  voit tag -s ./photos -e party\n  voit tag -s ./photos -l cake -a candles -a bday",
+		Example: "  voit tag -e party\n  voit tag -s ./photos -l cake -a candles -a bday\n  voit tag --sync-xmp",
 
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := voit.Cfg.Validate(); err != nil {
@@ -34,11 +34,11 @@ var (
 				log.Fatalf("Unable to complete source file scan: %v", err)
 			}
 
-			// if voit.Cfg.Tag.SyncXMP {
-			// 	files.SyncXMP(&voit.Cfg)
-			// } else {
-			files.StageTag(&voit.Cfg)
-			// }
+			if voit.Cfg.Tag.SyncXMP {
+				files.SyncXMP(&voit.Cfg)
+			} else {
+				files.StageTag(&voit.Cfg)
+			}
 
 			files.PromptRename(os.Stdout, os.Stdin, &voit.Cfg)
 		},
@@ -53,7 +53,7 @@ func init() {
 	tagCmd.Flags().StringSliceVarP(&voit.Cfg.Tag.Remove, "remove", "r", []string{}, "Remove specified tags")
 	tagCmd.Flags().StringSliceVarP(&voit.Cfg.Tag.Set, "set", "e", []string{}, "Set tags to specified tags")
 	tagCmd.Flags().StringSliceVarP(&voit.Cfg.Tag.Select, "select", "c", []string{}, "Perform operations only on files with matching tags (default: all)")
-	// tagCmd.Flags().BoolVarP(&voit.Cfg.Tag.SyncXMP, "sync-xmp", "x", false, "Sync tags from XMP sidecar (overwrites existing tags)")
+	tagCmd.Flags().BoolVarP(&voit.Cfg.Tag.SyncXMP, "sync-xmp", "x", false, "Sync tags from XMP sidecar (overwrites existing tags)")
 	tagCmd.Flags().BoolVarP(&voit.Cfg.Tag.Delete, "delete", "d", false, "Remove all tags")
 	tagCmd.MarkFlagsMutuallyExclusive("add", "remove", "set", "sync-xmp", "delete")
 	viper.BindPFlags(tagCmd.Flags())
