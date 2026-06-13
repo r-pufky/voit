@@ -6,6 +6,97 @@ import (
 	"time"
 )
 
+func TestTagSyncAdd(t *testing.T) {
+	tests := []struct {
+		name     string
+		opts     *Opts
+		tags     []string
+		tag      string
+		wantTags []string
+	}{
+		{
+			name: "sanity: append a tag [tag added]",
+			opts: &Opts{
+				Tag: TagOpts{
+					SyncInFolder:   DefaultSyncInFolder,
+					SyncOutFolder:  DefaultSyncOutFolder,
+					SyncOutSpace:   DefaultSyncOutSpace,
+					SyncKeepFolder: false,
+					SyncKeepSpace:  false,
+				},
+			},
+			tags:     []string{"summer", "beach"},
+			tag:      "vacation",
+			wantTags: []string{"summer", "beach", "vacation"},
+		},
+		{
+			name: "sanity: keep-folder [folder retained]",
+			opts: &Opts{
+				Tag: TagOpts{
+					SyncInFolder:   DefaultSyncInFolder,
+					SyncOutFolder:  DefaultSyncOutFolder,
+					SyncOutSpace:   DefaultSyncOutSpace,
+					SyncKeepFolder: true,
+					SyncKeepSpace:  false,
+				},
+			},
+			tags:     []string{"summer", "beach"},
+			tag:      "places/vacation",
+			wantTags: []string{"summer", "beach", "places➔vacation"},
+		},
+		{
+			name: "sanity: keep-space [tag space retained]",
+			opts: &Opts{
+				Tag: TagOpts{
+					SyncInFolder:   DefaultSyncInFolder,
+					SyncOutFolder:  DefaultSyncOutFolder,
+					SyncOutSpace:   DefaultSyncOutSpace,
+					SyncKeepFolder: false,
+					SyncKeepSpace:  true,
+				},
+			},
+			tags: []string{"summer", "beach"},
+			tag:  "person name",
+			// Non-printable brail space counts as non-whitespace.
+			wantTags: []string{"summer", "beach", "person⠀name"},
+		},
+		{
+			name: "sanity: keep-all [folder, tag space retained]",
+			opts: &Opts{
+				Tag: TagOpts{
+					SyncInFolder:   DefaultSyncInFolder,
+					SyncOutFolder:  DefaultSyncOutFolder,
+					SyncOutSpace:   DefaultSyncOutSpace,
+					SyncKeepFolder: true,
+					SyncKeepSpace:  true,
+				},
+			},
+			tags: []string{"summer", "beach"},
+			tag:  "places/cabo/person name",
+			// Non-printable brail space counts as non-whitespace.
+			wantTags: []string{"summer", "beach", "places➔cabo➔person⠀name"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tag := Tag{
+				Items: tt.tags,
+			}
+
+			tag.SyncAdd(tt.tag, tt.opts)
+
+			if len(tag.Items) == 0 && len(tt.wantTags) == 0 {
+				return
+			}
+			if !reflect.DeepEqual(tag.Items, tt.wantTags) {
+				t.Errorf("\nTags:     %q\nwantTags: %q", tag.Items, tt.wantTags)
+			}
+
+		})
+	}
+}
+
 func TestTagAdd(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -85,5 +85,5 @@ func init() {
 	renameCmd.Flags().Bool("modified", false, "[modtime]               │ Use file modification date")
 	renameCmd.MarkFlagsMutuallyExclusive(slices.Collect(maps.Keys(voit.Patterns))...)
 
-	bindFlagsToPrefix(tagCmd.Flags(), "rename")
+	bindFlagsToPrefix(renameCmd.Flags(), "rename")
 }

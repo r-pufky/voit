@@ -10,18 +10,18 @@ import (
 
 // Voit package owns configure; cmd is a consumer that sets options.
 type Opts struct {
-	Yes       bool       `mapstructure:"yes"`
-	Verbose   bool       `mapstructure:"verbose"`
-	Build     bool       `mapstructure:"build"`
 	TagSep    string     `mapstructure:"tag-sep"`
 	DescSep   string     `mapstructure:"desc-sep"`
 	SpanSep   string     `mapstructure:"span-sep"`
 	AbsSource string     `mapstructure:"abs-source"`
 	Format    string     `mapstructure:"format"`
-	Lower     bool       `mapstructure:"lower"`
-	Overwrite bool       `mapstructure:"overwrite"`
 	Rename    RenameOpts `mapstructure:"rename"`
 	Tag       TagOpts    `mapstructure:"tag"`
+	Yes       bool       `mapstructure:"yes"`
+	Verbose   bool       `mapstructure:"verbose"`
+	Build     bool       `mapstructure:"build"`
+	Overwrite bool       `mapstructure:"overwrite"`
+	Lower     bool       `mapstructure:"lower"`
 }
 
 type RenameOpts struct {
@@ -34,12 +34,17 @@ type RenameOpts struct {
 }
 
 type TagOpts struct {
-	Add     []string `mapstructure:"add"`
-	Remove  []string `mapstructure:"remove"`
-	Set     []string `mapstructure:"set"`
-	Select  []string `mapstructure:"select"`
-	SyncXMP bool     `mapstructure:"sync-xmp"`
-	Delete  bool     `mapstructure:"delete"`
+	Add            []string `mapstructure:"add"`
+	Remove         []string `mapstructure:"remove"`
+	Set            []string `mapstructure:"set"`
+	Select         []string `mapstructure:"select"`
+	SyncXMP        bool     `mapstructure:"sync-xmp"`
+	SyncInFolder   string   `mapstructure:"sync-in-folder"`
+	SyncOutFolder  string   `mapstructure:"sync-out-folder"`
+	SyncOutSpace   string   `mapstructure:"sync-out-space"`
+	SyncKeepFolder bool     `mapstructure:"sync-keep-folder"`
+	SyncKeepSpace  bool     `mapstructure:"sync-keep-space"`
+	Delete         bool     `mapstructure:"delete"`
 }
 
 var Cfg Opts
@@ -60,6 +65,17 @@ func (o *Opts) Voit() Config {
 	if o.TagSep != "" {
 		c.TSep = o.TagSep
 	}
+	if o.Tag.SyncInFolder != "" {
+		c.SyncInFolder = o.Tag.SyncInFolder
+	}
+	if o.Tag.SyncOutFolder != "" {
+		c.SyncOutFolder = o.Tag.SyncOutFolder
+	}
+	if o.Tag.SyncOutSpace != "" {
+		c.SyncOutSpace = o.Tag.SyncOutSpace
+	}
+	c.SyncKeepFolder = o.Tag.SyncKeepFolder
+	c.SyncKeepSpace = o.Tag.SyncKeepSpace
 	c.Lower = o.Lower
 
 	if o.Rename.Set != "" {
@@ -75,6 +91,15 @@ func (o *Opts) Voit() Config {
 
 // Validate received options.
 func (o *Opts) Validate() error {
+	switch o.Tag.SyncOutFolder {
+	case o.SpanSep, o.DescSep, o.TagSep, o.Tag.SyncOutSpace, " ", "\t", "\n", "\v", "\f", "\r":
+		return fmt.Errorf("tag-folder must be unique non-whitespace character (%v).", o.Tag.SyncOutFolder)
+	}
+	switch o.Tag.SyncOutSpace {
+	case o.SpanSep, o.DescSep, o.TagSep, o.Tag.SyncOutFolder, " ", "\t", "\n", "\v", "\f", "\r":
+		return fmt.Errorf("tag-space must be unique non-whitespace character (%v).", o.Tag.SyncOutSpace)
+	}
+
 	if o.AbsSource == "" {
 		var err error
 		o.AbsSource, err = os.Getwd()

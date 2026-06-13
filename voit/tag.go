@@ -5,10 +5,33 @@ import (
 	"strings"
 )
 
-// Add tag (case insensitive, tags automatically lowercased).
-// TODO - add tag format filter for digikam (stripping invalid such as /people/person/tag)
+// Add tag synchronized from XMP metadata. These tags may be hierarchial with
+// additional separators and spaces. Use configured options to parse each tag
+// to a voit-acceptable tag token and call the normal Add() method.
+//
+// Tags are lowercased and optionally stripped of leading folder/spaces as well
+// as converting folder and space separators to valid options. Tags are only
+// checked for inclusion after the translation occurs.
+func (t *Tag) SyncAdd(s string, o *Opts) {
+	if o.Tag.SyncKeepFolder {
+		s = strings.ReplaceAll(s, o.Tag.SyncInFolder, o.Tag.SyncOutFolder)
+	} else if i := strings.LastIndex(s, o.Tag.SyncInFolder); i != -1 {
+		s = s[i+len(o.Tag.SyncInFolder):]
+	}
+
+	if o.Tag.SyncKeepSpace {
+		s = strings.ReplaceAll(s, " ", o.Tag.SyncOutSpace)
+	} else {
+		s = strings.ReplaceAll(s, " ", "")
+	}
+
+	t.Add(s)
+}
+
+// Add tag. Tags lowercased and checked for inclusion after translation occurs.
 func (t *Tag) Add(s string) {
 	tag := strings.ToLower(s)
+
 	if slices.Contains(t.Items, tag) {
 		return
 	}

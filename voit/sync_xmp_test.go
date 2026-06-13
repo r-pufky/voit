@@ -139,7 +139,7 @@ func TestParseSidecar(t *testing.T) {
      <rdf:li>summer</rdf:li>
      <rdf:li>vacation</rdf:li>
      <rdf:li>beach</rdf:li>
-     <rdf:li>sidecar</rdf:li>
+     <rdf:li>place/location/sidecar name</rdf:li>
     </rdf:Seq>
    </digiKam:TagsList>
   </rdf:Description>
@@ -169,7 +169,12 @@ func TestParseSidecar(t *testing.T) {
 			name: "sanity: tagged sidecar match [file/sidecar updated with xmp tags]",
 			opts: &Opts{
 				Tag: TagOpts{
-					SyncXMP: true,
+					SyncXMP:        true,
+					SyncInFolder:   "/",
+					SyncOutFolder:  "➔",
+					SyncOutSpace:   "⠀",
+					SyncKeepFolder: true,
+					SyncKeepSpace:  true,
 				},
 			},
 			filesSetup: []struct {
@@ -194,7 +199,7 @@ func TestParseSidecar(t *testing.T) {
 						},
 						Mark: Meta{
 							VTime: VTime{Time: vTime},
-							Tags:  Tag{Items: []string{"summer", "vacation", "beach", "sidecar"}},
+							Tags:  Tag{Items: []string{"summer", "vacation", "beach", "place➔location➔sidecar⠀name"}},
 							Desc:  Desc{Text: bDesc},
 						},
 						Matched: true,
@@ -211,7 +216,7 @@ func TestParseSidecar(t *testing.T) {
 						},
 						Mark: Meta{
 							VTime: VTime{Time: vTime},
-							Tags:  Tag{Items: []string{"summer", "vacation", "beach", "sidecar"}},
+							Tags:  Tag{Items: []string{"summer", "vacation", "beach", "place➔location➔sidecar⠀name"}},
 							Desc:  Desc{Text: bDesc},
 						},
 						Matched: true,
@@ -407,7 +412,7 @@ func TestParseSidecar(t *testing.T) {
 
 			fileMap := make(FileMap)
 			inputFiles.buildFileMap(tt.opts.Voit(), fileMap)
-			fileMap.ParseSidecar()
+			fileMap.ParseSidecar(tt.opts)
 
 			// DeepEqual will compare memory addresses if pointers, not values.
 			// Convert to value. This is required as pointers are needed to update

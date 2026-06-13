@@ -27,6 +27,26 @@ func TestNewConfig(t *testing.T) {
 		t.Errorf("wantBool TSep to be %q, got %q", DefaultTagsSep, cfg.TSep)
 	}
 
+	if cfg.SyncInFolder != DefaultSyncInFolder {
+		t.Errorf("wantBool TSep to be %q, got %q", DefaultSyncInFolder, cfg.SyncInFolder)
+	}
+
+	if cfg.SyncOutFolder != DefaultSyncOutFolder {
+		t.Errorf("wantBool TSep to be %q, got %q", DefaultSyncOutFolder, cfg.SyncOutFolder)
+	}
+
+	if cfg.SyncOutSpace != DefaultSyncOutSpace {
+		t.Errorf("wantBool TSep to be %q, got %q", DefaultSyncOutSpace, cfg.SyncOutSpace)
+	}
+
+	if cfg.SyncKeepFolder != false {
+		t.Errorf("wantBool Lower to be false, got %t", cfg.SyncKeepFolder)
+	}
+
+	if cfg.SyncKeepSpace != false {
+		t.Errorf("wantBool Lower to be false, got %t", cfg.SyncKeepSpace)
+	}
+
 	if cfg.Lower != false {
 		t.Errorf("wantBool Lower to be false, got %t", cfg.Lower)
 	}

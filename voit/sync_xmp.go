@@ -17,7 +17,7 @@ func (files VoitFiles) SyncXMP(opts *Opts) {
 
 	fileMap := make(FileMap)
 	files.buildFileMap(vCfg, fileMap)
-	fileMap.ParseSidecar()
+	fileMap.ParseSidecar(opts)
 	files.ResolveCollisions(vCfg, opts.Verbose)
 }
 
@@ -46,7 +46,7 @@ func (files VoitFiles) buildFileMap(vCfg Config, fileMap map[string]*LinkedFiles
 }
 
 // Parse sidecar tags and update both file and sidecar with tags if both exist.
-func (fMap FileMap) ParseSidecar() {
+func (fMap FileMap) ParseSidecar(opts *Opts) {
 	for _, pair := range fMap {
 		if pair == nil || pair.File == nil || pair.Sidecar == nil {
 			continue // Skip incomplete links.
@@ -62,7 +62,7 @@ func (fMap FileMap) ParseSidecar() {
 
 		if model := digikam.FindModel(doc); model != nil && len(model.TagsList) > 0 {
 			for _, tag := range model.TagsList {
-				tags.Add(tag)
+				tags.SyncAdd(tag, opts)
 			}
 
 			pair.File.Matched = true

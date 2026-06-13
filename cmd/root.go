@@ -51,7 +51,7 @@ func init() {
 
 	rootCmd.Flags().BoolVarP(&voit.Cfg.Build, "build", "b", false, "Show build version.")
 
-	bindFlagsToPrefix(tagCmd.Flags(), "")
+	bindFlagsToPrefix(rootCmd.Flags(), "")
 }
 
 var rootCmd = &cobra.Command{

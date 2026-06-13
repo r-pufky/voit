@@ -173,7 +173,7 @@ func TestScanGlobbing(t *testing.T) {
 			}
 
 			if len(got) != tt.wantCount {
-				t.Errorf("Glob: %q\nGot:  %d\nWant %d", tt.pattern, len(got), tt.wantCount)
+				t.Errorf("\nGlob: %q\nGot:  %d\nWant %d", tt.pattern, len(got), tt.wantCount)
 			}
 
 			for _, f := range got {
@@ -259,10 +259,10 @@ func TestNewSidecarLogic(t *testing.T) {
 			actualBaseName := filepath.Base(v.File.Name)
 
 			if actualBaseName != tt.wantName {
-				t.Errorf("Got:  %q\nWant: %q", actualBaseName, tt.wantName)
+				t.Errorf("\nGot:  %q\nWant: %q", actualBaseName, tt.wantName)
 			}
 			if v.File.Ext != tt.wantExt {
-				t.Errorf("Got:  %q\nWant %q", v.File.Ext, tt.wantExt)
+				t.Errorf("\nGot:  %q\nWant %q", v.File.Ext, tt.wantExt)
 			}
 		})
 	}
