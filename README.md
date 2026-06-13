@@ -81,6 +81,13 @@ voit tag -s "./photos/PXL_2024*.jpg" -a candles -a bday
 
 # Sync XMP tags to both file and sidecar.
 voit tag --sync-xmp
+> 2001-08-04T17.43.25.000.jpg     ➔ 2001-08-04T17.43.25.000 -- ronburgundy party.jpg
+> 2001-08-04T17.43.25.000.jpg.xmp ➔ 2001-08-04T17.43.25.000 -- ronburgundy party.jpg.xmp
+
+# Sync XMP nested tags and space may be kept (note: default space is blank brail u+2800).
+❯ ./voit tag --sync-xmp --sync-keep-folder --sync-keep-space
+2001-08-04T17.43.25.000.jpg     ➔ 2001-08-04T17.43.25.000 -- people➔college➔ron⠀burgundy party.jpg
+2001-08-04T17.43.25.000.jpg.xmp ➔ 2001-08-04T17.43.25.000 -- people➔college➔ron⠀burgundy party.jpg.xmp
 ```
 
 ## Config
