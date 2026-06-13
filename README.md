@@ -36,7 +36,7 @@ See command help for full list of options.
 ``` bash
 # Most photos today include milliseconds, so use --photo-ms
 $ voit rename --photo
-> 2017-02-25.jpg                   ➔ 2017-02-25T00.00.00.000 2017-02-25.jpg
+> ...
 > download_20170419_134641.jpg     ➔ 2017-04-19T13.46.41.000 download_20170419_134641.jpg
 > download_20170419_134641.jpg.xmp ➔ 2017-04-19T13.46.41.000 download_20170419_134641.jpg.xmp
 > ...
@@ -70,11 +70,11 @@ voit tag -c cake -a candles -a bday
 
 # Remove 'candles', 'bday' tags.
 voit tag -r candles -r bday  # From all files.
-voit tag -r candles -r bday -l cake  # From all files with 'cake'.
+voit tag -r candles -r bday -c cake  # From all files with 'cake'.
 
 # Remove all tags.
 voit tag -d  # From all files.
-voit tag -d -c candles bday  # From all files with 'candles', 'bday'.
+voit tag -d -c candles -c bday  # From all files with 'candles', 'bday'.
 
 # Globbing supported. Use quotes.
 voit tag -s "./photos/PXL_2024*.jpg" -a candles -a bday
@@ -84,7 +84,7 @@ voit tag --sync-xmp
 > 2001-08-04T17.43.25.000.jpg     ➔ 2001-08-04T17.43.25.000 -- ronburgundy party.jpg
 > 2001-08-04T17.43.25.000.jpg.xmp ➔ 2001-08-04T17.43.25.000 -- ronburgundy party.jpg.xmp
 
-# Sync XMP nested tags and space may be kept (note: default space is blank brail u+2800).
+# Sync XMP keeping nested tags and inner spaces (note: default inner space is blank brail u+2800).
 ❯ ./voit tag --sync-xmp --sync-keep-folder --sync-keep-space
 2001-08-04T17.43.25.000.jpg     ➔ 2001-08-04T17.43.25.000 -- people➔college➔ron⠀burgundy party.jpg
 2001-08-04T17.43.25.000.jpg.xmp ➔ 2001-08-04T17.43.25.000 -- people➔college➔ron⠀burgundy party.jpg.xmp
@@ -99,11 +99,12 @@ Values in this config are superseded by flags.
 # Only define options that are preferred defaults.
 
 # Global Options
-Yes = true
-Verbose = true
-TagSep = " = "
-DescSep = " - "
-SpanSep = "--"
+yes = true
+verbose = true
+lower = true
+tag-sep = " = "
+desc-sep = " - "
+span-sep = "--"
 
 [Rename]
 no-desc = false
