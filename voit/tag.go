@@ -6,6 +6,7 @@ import (
 )
 
 // Add tag (case insensitive, tags automatically lowercased).
+// TODO - add tag format filter for digikam (stripping invalid such as /people/person/tag)
 func (t *Tag) Add(s string) {
 	tag := strings.ToLower(s)
 	if slices.Contains(t.Items, tag) {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const renameLong = `
@@ -86,5 +85,5 @@ func init() {
 	renameCmd.Flags().Bool("modified", false, "[modtime]               │ Use file modification date")
 	renameCmd.MarkFlagsMutuallyExclusive(slices.Collect(maps.Keys(voit.Patterns))...)
 
-	viper.BindPFlags(rootCmd.Flags())
+	bindFlagsToPrefix(tagCmd.Flags(), "rename")
 }

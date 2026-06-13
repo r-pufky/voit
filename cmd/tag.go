@@ -6,7 +6,6 @@ import (
 
 	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const tagLong = `
@@ -56,5 +55,6 @@ func init() {
 	tagCmd.Flags().BoolVarP(&voit.Cfg.Tag.SyncXMP, "sync-xmp", "x", false, "Sync tags from XMP sidecar (overwrites existing tags)")
 	tagCmd.Flags().BoolVarP(&voit.Cfg.Tag.Delete, "delete", "d", false, "Remove all tags")
 	tagCmd.MarkFlagsMutuallyExclusive("add", "remove", "set", "sync-xmp", "delete")
-	viper.BindPFlags(tagCmd.Flags())
+
+	bindFlagsToPrefix(tagCmd.Flags(), "tag")
 }

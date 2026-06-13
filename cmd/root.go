@@ -9,6 +9,7 @@ import (
 	"github.com/k0kubun/pp/v3"
 	"github.com/r-pufky/voit/voit"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -49,6 +50,8 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Overwrite, "overwrite", "", false, "Overwrite existing target files (DANGEROUS)")
 
 	rootCmd.Flags().BoolVarP(&voit.Cfg.Build, "build", "b", false, "Show build version.")
+
+	bindFlagsToPrefix(tagCmd.Flags(), "")
 }
 
 var rootCmd = &cobra.Command{
@@ -58,6 +61,10 @@ var rootCmd = &cobra.Command{
 	// Run before all subcommands unless PersistentPreRunE is re-defined.
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		loadUserConfig()
+
+		if err := viper.BindPFlags(cmd.PersistentFlags()); err != nil {
+			return err
+		}
 
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
 			return err
@@ -98,4 +105,18 @@ func loadUserConfig() {
 	viper.SetConfigFile(filepath.Join(home, ".config", "voit.toml"))
 
 	_ = viper.ReadInConfig()
+}
+
+// Bind local config flags to correct prefix for subcommands. Enables correct
+// mapping for flags which may be duplicated in subcommands resulting in flag
+// being stored in incorrect location.
+func bindFlagsToPrefix(flags *pflag.FlagSet, prefix string) {
+	flags.VisitAll(func(f *pflag.Flag) {
+		configKey := f.Name
+		if prefix != "" {
+			configKey = prefix + "." + f.Name
+		}
+
+		viper.BindPFlag(configKey, f)
+	})
 }
