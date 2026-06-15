@@ -103,6 +103,4 @@ func (files VoitFiles) StageTag(opts *Opts) {
 			}
 		}
 	}
-
-	files.ResolveCollisions(vCfg, opts.Verbose)
 }

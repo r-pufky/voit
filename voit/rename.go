@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/k0kubun/pp/v3"
@@ -66,13 +64,11 @@ func (files VoitFiles) StageRename(w io.Writer, opts *Opts) {
 			f.Mark.Desc = f.Orig.Desc
 		}
 	}
-
-	files.ResolveCollisions(vCfg, opts.Verbose)
 }
 
-// Rename files marked as Matched using File.Source and Mark.Target resolving
-// collisions unless overwrite is enabled.
-func (files VoitFiles) Rename(w io.Writer, overwrite bool, verbose bool) {
+// Rename files marked as Matched using File.Source and Mark.Target. Collisions
+// are fatal unless overwrite is enabled.
+func (files VoitFiles) Rename(w io.Writer, overwrite bool, verbose bool) error {
 	defer timeAction(w, time.Now())
 	for _, f := range files {
 		if f.Matched {
@@ -80,38 +76,18 @@ func (files VoitFiles) Rename(w io.Writer, overwrite bool, verbose bool) {
 
 			if !overwrite {
 				if _, err := os.Stat(target); err == nil {
-					if verbose {
-						fmt.Fprintf(w, "Collision: %s\n", target)
-					}
-					target = resolveFSCollisions(w, target)
+					return fmt.Errorf("Collision: %s%s\n", f.File.Source, f.File.Ext)
 				}
 			}
 
 			if err := os.Rename(f.File.Source, target); err != nil {
-				fmt.Fprintf(w, "Error renaming %s to %s: %v\n", f.File.Source, target, err)
+				fmt.Fprintf(w, "Error renaming: %s%s ➔ %s%s: %v\n", f.File.Source, f.File.Ext, target, f.File.Ext, err)
 			} else if verbose {
 				fmt.Fprintf(w, "Renamed: %s%s ➔ %s%s\n", f.File.Source, f.File.Ext, target, f.File.Ext)
 			}
 		}
 	}
-}
-
-// Resolve FS collision during file disk operation.
-func resolveFSCollisions(w io.Writer, path string) string {
-	ext := filepath.Ext(path)
-	name := strings.TrimSuffix(path, ext)
-	counter := 1
-	uniquePath := path
-
-	for {
-		uniquePath = fmt.Sprintf("%s_%d%s", name, counter, ext)
-		if _, err := os.Stat(uniquePath); os.IsNotExist(err) {
-			fmt.Fprintf(w, "Collision (new target): %s\n", uniquePath)
-			break
-		}
-		counter++
-	}
-	return uniquePath
+	return nil
 }
 
 // Time file actions.

@@ -18,7 +18,6 @@ func (files VoitFiles) SyncXMP(opts *Opts) {
 	fileMap := make(FileMap)
 	files.buildFileMap(vCfg, fileMap)
 	fileMap.ParseSidecar(opts)
-	files.ResolveCollisions(vCfg, opts.Verbose)
 }
 
 // Ingest and link related files. Valid links contain both file and sidecar.
@@ -56,7 +55,7 @@ func (fMap FileMap) ParseSidecar(opts *Opts) {
 
 		doc, err := parseSidecar(pair.Sidecar.File.Source)
 		if err != nil {
-			fmt.Printf("Warning: Failed to parse %s: %v\n", pair.Sidecar.File.Source, err)
+			fmt.Printf("Warning - failed to parse %s: %v\n", pair.Sidecar.File.Source, err)
 			continue
 		}
 

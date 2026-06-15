@@ -1,182 +1,170 @@
 package voit
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
-	"time"
 )
 
 func TestResolveCollisions(t *testing.T) {
 	vCfg := NewConfig()
-	now := time.Time{}
+	tmpDir := t.TempDir()
 
 	tests := []struct {
-		name      string
-		files     VoitFiles
-		wantDesc1 string
-		wantDesc2 string
+		name     string
+		setupFS  func(dir string)
+		input    VoitFiles
+		expected []string // Expected Target names
 	}{
 		{
 			name: "sanity: no collisions [no modifications]",
-			files: VoitFiles{
+			input: VoitFiles{
 				{
-					Target:  "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: "beach vacation"},
-					},
+					File: File{Source: filepath.Join(tmpDir, "file no collisions a.jpg"), Name: "file", Ext: ".jpg"},
+					Mark: Meta{Desc: Desc{Text: "no collisions a"}},
 				},
 				{
-					Target:  "/tmp/2026-02-02T12.05.20.700 forest vacation -- summer vacation beach.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: "forest vacation"},
-					},
+					File: File{Source: filepath.Join(tmpDir, "file no collisions a.jpg"), Name: "file", Ext: ".jpg"},
+					Mark: Meta{Desc: Desc{Text: "no collisions b"}},
 				},
 			},
-			wantDesc1: "forest vacation",
+			expected: []string{
+				"0001-01-01T00.00.00.000 no collisions a.jpg",
+				"0001-01-01T00.00.00.000 no collisions b.jpg",
+			},
 		},
 		{
 			name: "sanity: standard collision [count added to desc]",
-			files: VoitFiles{
+			input: VoitFiles{
 				{
-					Target:  "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: "beach vacation"},
-					},
+					File: File{Source: filepath.Join(tmpDir, "file standard collision.jpg"), Name: "file", Ext: ".jpg"},
+					Mark: Meta{Desc: Desc{Text: "standard collision"}},
 				},
 				{
-					Target:  "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: "beach vacation"},
-					},
+					File: File{Source: filepath.Join(tmpDir, "file standard collision.jpg"), Name: "file", Ext: ".jpg"},
+					Mark: Meta{Desc: Desc{Text: "standard collision"}},
 				},
 			},
-			wantDesc1: "beach vacation_1",
+			expected: []string{
+				"0001-01-01T00.00.00.000 standard collision.jpg",
+				"0001-01-01T00.00.00.000 standard collision 1.jpg",
+			},
 		},
 		{
 			name: "sanity: multi-collision [multiple collisions numerically incremented]",
-			files: VoitFiles{
+			input: VoitFiles{
 				{
-					Target:  "/tmp/2026-02-02T12.05.20.700 beach vacation-- summer vacation beach.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: "beach vacation"},
-					},
+					File: File{Source: filepath.Join(tmpDir, "file multi-collision.jpg"), Name: "file", Ext: ".jpg"},
+					Mark: Meta{Desc: Desc{Text: "multi-collision"}},
 				},
 				{
-					Target:  "/tmp/2026-02-02T12.05.20.700 beach vacation-- summer vacation beach.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: "beach vacation_1"},
-					},
+					File: File{Source: filepath.Join(tmpDir, "file multi-collision.jpg"), Name: "file", Ext: ".jpg"},
+					Mark: Meta{Desc: Desc{Text: "multi-collision"}},
 				},
 				{
-					Target:  "/tmp/2026-02-02T12.05.20.700 beach vacation-- summer vacation beach.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: "beach vacation_2"},
-					},
+					File: File{Source: filepath.Join(tmpDir, "file multi-collision.jpg"), Name: "file", Ext: ".jpg"},
+					Mark: Meta{Desc: Desc{Text: "multi-collision"}},
 				},
 			},
-			wantDesc1: "beach vacation_1",
-			wantDesc2: "beach vacation_2",
+			expected: []string{
+				"0001-01-01T00.00.00.000 multi-collision.jpg",
+				"0001-01-01T00.00.00.000 multi-collision 1.jpg",
+				"0001-01-01T00.00.00.000 multi-collision 2.jpg",
+			},
 		},
 		{
 			name: "no desc: no tags [count added to desc for 1,2]",
-			files: VoitFiles{
-				{
-					Target:  "/tmp/2026-02-02T12.05.20.700.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: ""},
-					},
-				},
-				{
-					Target:  "/tmp/2026-02-02T12.05.20.700.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: "1"},
-					},
-				},
-				{
-					Target:  "/tmp/2026-02-02T12.05.20.700.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: "2"},
-					},
-				},
+			input: VoitFiles{
+				{File: File{Source: filepath.Join(tmpDir, "file.jpg"), Name: "file", Ext: ".jpg"}, Mark: Meta{}},
+				{File: File{Source: filepath.Join(tmpDir, "file.jpg"), Name: "file", Ext: ".jpg"}, Mark: Meta{}},
 			},
-			wantDesc1: "1",
-			wantDesc2: "2",
+			expected: []string{
+				"0001-01-01T00.00.00.000.jpg",
+				"0001-01-01T00.00.00.000 1.jpg",
+			},
 		},
 		{
 			name: "no desc: tags [count added to desc for 1,2]",
-			files: VoitFiles{
+			input: VoitFiles{
 				{
-					Target:  "/tmp/2026-02-02T12.05.20.700 -- summer vacation beach.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: ""},
-					},
+					File: File{Source: filepath.Join(tmpDir, "file.jpg"), Name: "file", Ext: ".jpg"},
+					Mark: Meta{Tags: Tag{Items: []string{"nodesctags"}}, Desc: Desc{Text: ""}},
 				},
 				{
-					Target:  "/tmp/2026-02-02T12.05.20.700 1 -- summer vacation beach.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: "1"},
-					},
-				},
-				{
-					Target:  "/tmp/2026-02-02T12.05.20.700 2 -- summer vacation beach.jpg",
-					Matched: true,
-					Mark: Meta{
-						VTime: VTime{Time: now},
-						Desc:  Desc{Text: "2"},
-					},
+					File: File{Source: filepath.Join(tmpDir, "file.jpg"), Name: "file", Ext: ".jpg"},
+					Mark: Meta{Tags: Tag{Items: []string{"nodesctags"}}, Desc: Desc{Text: ""}},
 				},
 			},
-			wantDesc1: "1",
-			wantDesc2: "2",
+			expected: []string{
+				"0001-01-01T00.00.00.000 -- nodesctags.jpg",
+				"0001-01-01T00.00.00.000 1 -- nodesctags.jpg",
+			},
+		},
+		{
+			name: "fs-collision: single collision [count 1 added to desc]",
+			setupFS: func(dir string) {
+				os.WriteFile(filepath.Join(dir, "0001-01-01T00.00.00.000.jpg"), []byte(""), 0644)
+			},
+			input: VoitFiles{
+				{File: File{Source: filepath.Join(tmpDir, "file.jpg"), Name: "file", Ext: ".jpg"}, Mark: Meta{}},
+			},
+			expected: []string{"0001-01-01T00.00.00.000 1.jpg"},
+		},
+		{
+			name: "fs-collision: multi-collision [count 2 added to desc]",
+			setupFS: func(dir string) {
+				os.WriteFile(filepath.Join(dir, "0001-01-01T00.00.00.000.jpg"), []byte(""), 0644)
+				os.WriteFile(filepath.Join(dir, "0001-01-01T00.00.00.000 1.jpg"), []byte(""), 0644)
+			},
+			input: VoitFiles{
+				{File: File{Source: filepath.Join(tmpDir, "file.jpg"), Name: "file", Ext: ".jpg"}, Mark: Meta{}},
+			},
+			expected: []string{"0001-01-01T00.00.00.000 2.jpg"},
+		},
+		{
+			name: "multi-collision: list and fs collision [count 2,3 added to desc]",
+			setupFS: func(dir string) {
+				os.WriteFile(filepath.Join(dir, "0001-01-01T00.00.00.000.jpg"), []byte(""), 0644)
+				os.WriteFile(filepath.Join(dir, "0001-01-01T00.00.00.000 1.jpg"), []byte(""), 0644)
+			},
+			input: VoitFiles{
+				{File: File{Source: filepath.Join(tmpDir, "file.jpg"), Name: "file", Ext: ".jpg"}, Mark: Meta{}},
+				{File: File{Source: filepath.Join(tmpDir, "file.jpg"), Name: "file", Ext: ".jpg"}, Mark: Meta{}},
+			},
+			expected: []string{"0001-01-01T00.00.00.000 2.jpg", "0001-01-01T00.00.00.000 3.jpg"},
+		},
+		{
+			name: "sanity: sidecar collision [file sidecar renamed in tandem]",
+			setupFS: func(dir string) {
+				os.WriteFile(filepath.Join(dir, "0001-01-01T00.00.00.000 sidecar.jpg"), []byte(""), 0644)
+				os.WriteFile(filepath.Join(dir, "0001-01-01T00.00.00.000 sidecar.jpg.xmp"), []byte(""), 0644)
+			},
+			input: VoitFiles{
+				{
+					File: File{Source: filepath.Join(tmpDir, "file.jpg"), Name: "file", Ext: ".jpg"},
+					Mark: Meta{Desc: Desc{Text: "sidecar"}},
+				},
+				{
+					File: File{Source: filepath.Join(tmpDir, "file.jpg.xmp"), Name: "file", Ext: ".jpg.xmp"},
+					Mark: Meta{Desc: Desc{Text: "sidecar"}},
+				},
+			},
+			expected: []string{"0001-01-01T00.00.00.000 sidecar 1.jpg", "0001-01-01T00.00.00.000 sidecar 1.jpg.xmp"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.files.ResolveCollisions(vCfg, false)
-
-			if tt.name == "Path 1: No Collision" {
-				if tt.files[0].Mark.Desc.Text != "Unique File" {
-					t.Errorf("wantBool first file description to remain 'Unique File', got %q", tt.files[0].Mark.Desc.Text)
-				}
+			if tt.setupFS != nil {
+				tt.setupFS(tmpDir)
 			}
 
-			// Assert for the second file
-			if len(tt.files) > 1 {
-				gotDesc := tt.files[1].Mark.Desc.Text
-				if gotDesc != tt.wantDesc1 {
-					t.Errorf("wantBool index 1 description to be %q, got %q", tt.wantDesc1, gotDesc)
-				}
-			}
+			tt.input.ResolveCollisions(vCfg, false)
 
-			// Assert for the third file (specifically for Path 5)
-			if tt.wantDesc2 != "" && len(tt.files) > 2 {
-				gotDesc2 := tt.files[2].Mark.Desc.Text
-				if gotDesc2 != tt.wantDesc2 {
-					t.Errorf("wantBool index 2 description to be %q, got %q", tt.wantDesc2, gotDesc2)
+			for i, f := range tt.input {
+				got := filepath.Base(f.Target)
+				if got != tt.expected[i] {
+					t.Errorf("\nIndex %d\nGot:  %q\nWant: %q\n", i, got, tt.expected[i])
 				}
 			}
 		})

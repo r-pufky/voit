@@ -2,7 +2,6 @@ package voit
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -52,7 +51,6 @@ func TestStageRename(t *testing.T) {
 						Desc: Desc{Text: "invalid_format"},
 					},
 					Matched: false,
-					Target:  "/tmp/0001-01-01T00.00.00.000 invalid_format.txt",
 				},
 			},
 		},
@@ -88,7 +86,6 @@ func TestStageRename(t *testing.T) {
 						Desc:  Desc{Text: baseDesc},
 					},
 					Matched: true,
-					Target:  "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
 				},
 			},
 		},
@@ -129,7 +126,6 @@ func TestStageRename(t *testing.T) {
 						Desc:  Desc{Text: baseDesc},
 					},
 					Matched: true,
-					Target:  "/tmp/2026-05-17T10.45.36.300 beach vacation -- summer vacation beach.jpg",
 				},
 			},
 		},
@@ -169,7 +165,6 @@ func TestStageRename(t *testing.T) {
 						Desc:  Desc{Text: "20260517_104536300 beach vacation"},
 					},
 					Matched: true,
-					Target:  "/tmp/2026-03-01T20.00.00.000 20260517_104536300 beach vacation -- summer vacation beach.jpg",
 				},
 			},
 		},
@@ -208,276 +203,6 @@ func TestStageRename(t *testing.T) {
 						Desc:  Desc{Text: ""},
 					},
 					Matched: true,
-					Target:  "/tmp/2026-02-02T12.05.20.700.jpg",
-				},
-			},
-		},
-		{
-			name: "collision: default [count added to desc].",
-			opts: &Opts{
-				Rename: RenameOpts{},
-			},
-			f: VoitFiles{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-			},
-			wantVoit: []Voit{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: baseDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: baseDesc},
-					},
-					Matched: true,
-					Target:  "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: baseDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: "beach vacation_1"},
-					},
-					Matched: true,
-					Target:  "/tmp/2026-02-02T12.05.20.700 beach vacation_1 -- summer vacation beach.jpg",
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: baseDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: "beach vacation_2"},
-					},
-					Matched: true,
-					Target:  "/tmp/2026-02-02T12.05.20.700 beach vacation_2 -- summer vacation beach.jpg",
-				},
-			},
-		},
-		{
-			name: "collision: no desc, no tags [count added to desc].",
-			opts: &Opts{
-				Rename: RenameOpts{
-					NoDesc: true,
-					NoTags: true,
-				},
-			},
-			f: VoitFiles{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-			},
-			wantVoit: []Voit{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: baseDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: []string{}},
-						Desc:  Desc{Text: ""},
-					},
-					Matched: true,
-					Target:  "/tmp/2026-02-02T12.05.20.700.jpg",
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: baseDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: []string{}},
-						Desc:  Desc{Text: "1"},
-					},
-					Matched: true,
-					Target:  "/tmp/2026-02-02T12.05.20.700 1.jpg",
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: baseDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: []string{}},
-						Desc:  Desc{Text: "2"},
-					},
-					Matched: true,
-					Target:  "/tmp/2026-02-02T12.05.20.700 2.jpg",
-				},
-			},
-		},
-		{
-			name: "collision: no desc, tags [count added to desc].",
-			opts: &Opts{
-				Rename: RenameOpts{
-					NoDesc: true,
-				},
-			},
-			f: VoitFiles{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-			},
-			wantVoit: []Voit{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: baseDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: ""},
-					},
-					Matched: true,
-					Target:  "/tmp/2026-02-02T12.05.20.700 -- summer vacation beach.jpg",
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: baseDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: "1"},
-					},
-					Matched: true,
-					Target:  "/tmp/2026-02-02T12.05.20.700 1 -- summer vacation beach.jpg",
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: baseDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: voitTime},
-						Tags:  Tag{Items: baseTags},
-						Desc:  Desc{Text: "2"},
-					},
-					Matched: true,
-					Target:  "/tmp/2026-02-02T12.05.20.700 2 -- summer vacation beach.jpg",
 				},
 			},
 		},
@@ -509,6 +234,7 @@ func TestRename(t *testing.T) {
 	tests := []struct {
 		name      string
 		overwrite bool
+		wantErr   bool
 		setupFS   func(t *testing.T, baseDir string) VoitFiles
 		verifyFS  func(t *testing.T, baseDir string, files VoitFiles, output string)
 	}{
@@ -597,8 +323,9 @@ func TestRename(t *testing.T) {
 			},
 		},
 		{
-			name:      "sanity: collision [target is renamed to vacation_2.jpg]",
+			name:      "sanity: collision [error raised]",
 			overwrite: false,
+			wantErr:   true,
 			setupFS: func(t *testing.T, baseDir string) VoitFiles {
 				src := filepath.Join(baseDir, "photo.jpg")
 				tgt := filepath.Join(baseDir, "vacation.jpg")
@@ -619,15 +346,6 @@ func TestRename(t *testing.T) {
 						Matched: true,
 						Target:  tgt,
 					},
-				}
-			},
-			verifyFS: func(t *testing.T, baseDir string, files VoitFiles, output string) {
-				expectedFinalTarget := filepath.Join(baseDir, "vacation_2.jpg")
-				if _, err := os.Stat(expectedFinalTarget); os.IsNotExist(err) {
-					t.Errorf("Expected %s to exist", expectedFinalTarget)
-				}
-				if !strings.Contains(output, "Collision:") || !strings.Contains(output, "Collision (new target):") {
-					t.Errorf("Expected collision notification, got context: %q", output)
 				}
 			},
 		},
@@ -657,65 +375,14 @@ func TestRename(t *testing.T) {
 			files := tt.setupFS(t, tmpDir)
 
 			var buf bytes.Buffer
-			files.Rename(&buf, tt.overwrite, true)
+			err := files.Rename(&buf, tt.overwrite, true)
 
-			tt.verifyFS(t, tmpDir, files, buf.String())
-		})
-	}
-}
-
-func TestResolveFSCollisions(t *testing.T) {
-	tests := []struct {
-		name       string
-		files      []string
-		path       string
-		wantSuffix string
-		wantOutput string
-	}{
-		{
-			name:       "sanity: no additional collisions [file_1.txt]",
-			files:      []string{},
-			path:       "file.txt",
-			wantSuffix: "_1.txt",
-			wantOutput: "Collision (new target): ",
-		},
-		{
-			name: "sanity: additional collisions [file_2.txt]",
-			files: []string{
-				"file_1.txt",
-			},
-			path:       "file.txt",
-			wantSuffix: "_2.txt",
-			wantOutput: "Collision (new target): ",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tmpDir := t.TempDir()
-
-			for _, file := range tt.files {
-				fullPath := filepath.Join(tmpDir, file)
-				if err := os.WriteFile(fullPath, []byte("dummy"), 0644); err != nil {
-					t.Fatalf("failed to set up test file %s: %v", fullPath, err)
-				}
+			if tt.wantErr && err == nil {
+				t.Errorf("\nGot:  %q\nWant: nil\n", err)
 			}
 
-			fullpath := filepath.Join(tmpDir, tt.path)
-			var buf bytes.Buffer
-			result := resolveFSCollisions(&buf, fullpath)
-
-			if !strings.HasSuffix(result, tt.wantSuffix) {
-				t.Errorf("expected path to end with %q, got %q", tt.wantSuffix, result)
-			}
-
-			if _, err := os.Stat(result); !os.IsNotExist(err) {
-				t.Errorf("expected returned path %q to not exist, but it does", result)
-			}
-
-			expectedFullOutput := fmt.Sprintf("%s%s\n", tt.wantOutput, result)
-			if buf.String() != expectedFullOutput {
-				t.Errorf("expected output %q, got %q", expectedFullOutput, buf.String())
+			if tt.verifyFS != nil {
+				tt.verifyFS(t, tmpDir, files, buf.String())
 			}
 		})
 	}

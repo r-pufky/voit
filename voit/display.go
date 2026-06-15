@@ -12,7 +12,7 @@ import (
 
 // Display source and target file name changes in column. Returns total matched
 // file count.
-func (files VoitFiles) DisplayPending(out io.Writer) int {
+func (files VoitFiles) DisplayPending(w io.Writer) int {
 	if len(files) == 0 {
 		return 0
 	}
@@ -24,7 +24,7 @@ func (files VoitFiles) DisplayPending(out io.Writer) int {
 
 	for _, file := range files {
 		if file.Matched {
-			fmt.Fprintf(out, "%-*s ➔ %s\n", int(maxJob.File.Width), filepath.Base(file.File.Source), filepath.Base(file.Target))
+			fmt.Fprintf(w, "%-*s ➔ %s\n", int(maxJob.File.Width), filepath.Base(file.File.Source), filepath.Base(file.Target))
 			i++
 		}
 	}
@@ -41,8 +41,9 @@ func Confirm(w io.Writer, r io.Reader) bool {
 	return input == "y" || input == "yes"
 }
 
-// Prompt rename action for files marked as Matched using Rename.
+// Prompt and rename on matched files after resolving collisions.
 func (files VoitFiles) PromptRename(w io.Writer, r io.Reader, opts *Opts) {
+	files.ResolveCollisions(opts.Voit(), opts.Verbose)
 	count := files.DisplayPending(w)
 	if count != 0 {
 		if opts.Overwrite {
