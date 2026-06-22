@@ -39,7 +39,9 @@ var (
 		},
 
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := voit.Cfg.Validate(); err != nil {
+			c := voit.Config{}.UpdateFromOpts(&voit.Cfg)
+
+			if err := voit.Cfg.Validate(os.Stdout); err != nil {
 				log.Fatalf("Validate: %v", err)
 			}
 
@@ -47,13 +49,14 @@ var (
 				log.Fatal("a rename pattern must be specified via flags or config file (e.g., --photo-ms) or explicitly set VTIME (--set).")
 			}
 
-			files, err := voit.Scan(voit.Cfg.AbsSource)
-			if err != nil {
-				log.Fatalf("Unable to complete source file scan: %v", err)
-			}
+			assets := voit.NewAssets()
 
-			files.StageRename(os.Stdout, &voit.Cfg)
-			files.PromptRename(os.Stdout, os.Stdin, &voit.Cfg)
+			if err := assets.LoadDir(voit.Cfg.AbsSource); err != nil {
+				log.Fatalf("Unable to complete source file scan: %v", err)
+			} else {
+				voit.StageRename(os.Stdout, assets, &voit.Cfg, c)
+				assets.PromptRename(os.Stdout, os.Stdin, c)
+			}
 		},
 	}
 )

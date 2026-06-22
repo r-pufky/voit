@@ -41,10 +41,10 @@ func init() {
 	rootCmd.PersistentFlags().SortFlags = false
 
 	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.AbsSource, "source", "s", "", "Source path for renaming files [globbing supported, use quotes to prevent shell expansion] (default: current directory)")
-	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.TagSep, "tag-sep", "", voit.DefaultTagsSep, "Tag separator")
-	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.DescSep, "desc-sep", "", voit.DefaultDescSep, "Description separator")
-	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.SpanSep, "span-sep", "", voit.DefaultSpanSep, "VTIME date span separator")
-	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.Format, "format", "", voit.DefaultVFormat, "VTIME format")
+	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.DescSep, "desc-sep", "", voit.DescSep, "Description separator")
+	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.TagSep, "tag-sep", "", voit.TagSep, "Tag separator")
+	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.SpanSep, "span-sep", "", voit.SpanSep, "VTIME date span separator")
+	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.VFormat, "v-format", "", voit.VFormat, "VTIME format")
 	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Verbose, "verbose", "v", false, "Show verbose information")
 	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Yes, "yes", "y", false, "Automatically confirm operations")
 	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Lower, "lower", "l", false, "Lowercase description and extension")
@@ -79,7 +79,7 @@ var rootCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if voit.Cfg.Verbose {
-			pp.Printf("Parsed Config: %v\nVoit Config: %v\n", voit.Cfg, voit.Cfg.Voit())
+			pp.Printf("Parsed Options: %v\nVoit Config: %v\n", voit.Cfg, voit.Config{}.UpdateFromOpts(&voit.Cfg))
 		}
 		if voit.Cfg.Build {
 			fmt.Printf("Version: %s\n", Version)

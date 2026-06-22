@@ -1,26 +1,22 @@
-/*
-Regex patterns for matching date times in filenames.
-
-Voit 8601 Regex Breakdown (YYYY-MM-DDTHH.MM.SS.SSS):
-^\s*          - Ignore leading whitespace
-(\d{4})       - Group 1: Year (4 digits)
--             - hyphen
-(\d{2})       - Group 2: Month (2 digits)
--             - hyphen
-(\d{2})       - Group 3: Day (2 digits)
-(?:           - Start optional outer group (allows partial matches)
-
-	T(\d{2})   - T Group 4: Hour (2 digits)
-	(?:
-	  \.(\d{2}) - . Group 5: Minute (2 digits)
-	  (?:
-	    \.(\d{2})(?:\.(\d{3}))? - . Group 6 (Second), . Group 7 (Millisecond)
-	  )?
-	)?
-
-)?
-\s*$           - Ignore trailing whitespace
-*/
+// Regex patterns for matching date times in filenames.
+//
+// Voit 8601 Regex Breakdown (YYYY-MM-DDTHH.MM.SS.SSS):
+// ^\s*                         - Ignore leading whitespace
+// (\d{4})                      - Group 1: Year (4 digits)
+// -                            - hyphen
+// (\d{2})                      - Group 2: Month (2 digits)
+// -                            - hyphen
+// (\d{2})                      - Group 3: Day (2 digits)
+// (?:                          - Start optional outer group (allows partial matches)
+// 	T(\d{2})                    - T Group 4: Hour (2 digits)
+// 	(?:
+// 	  \.(\d{2})                 - . Group 5: Minute (2 digits)
+// 	  (?:
+// 	    \.(\d{2})(?:\.(\d{3}))? - . Group 6 (Second), . Group 7 (Millisecond)
+// 	  )?
+// 	)?
+// )?
+// \s*$           - Ignore trailing whitespace
 
 package voit
 
@@ -56,9 +52,11 @@ var Patterns = map[string]*regexp.Regexp{
 	"set":           regexp.MustCompile(`^\s*(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})(?:\.(\d{2})(?:\.(\d{2})(?:\.(\d{3}))?)?)?)?\s*$`), // Voit 8601
 }
 
-// Extract time object from given string and filter.
-func Extract(name string, pattern string) (time.Time, error) {
-	match := Patterns[pattern].FindStringSubmatch(name)
+// Extract time object using Pattern from name. Returns time object in
+// UTC representing the parsed datetime.
+func Extract(name string, cfg ...Config) (time.Time, error) {
+	c := NewConfig(cfg...)
+	match := Patterns[c.Voit.Pattern].FindStringSubmatch(name)
 	if match == nil {
 		return time.Time{}, fmt.Errorf("no date pattern matched: %s", name)
 	}
@@ -73,19 +71,19 @@ func Extract(name string, pattern string) (time.Time, error) {
 		return val
 	}
 
-	if pattern == "webkit-chrome" {
+	if c.Voit.Pattern == "webkit-chrome" {
 		ms, err := strconv.ParseInt(match[1], 10, 64)
 		if err != nil {
-			return time.Time{}, fmt.Errorf("invalid webkit format: %s", name)
+			return time.Time{}, fmt.Errorf("invalid webkit format: %w", err)
 		}
 		sec := (ms / MsPerSec) - WebkitEpochOffset
 		return time.Unix(sec, (ms%MsPerSec)*1000).UTC(), nil
 	}
 
-	if pattern == "unix" {
+	if c.Voit.Pattern == "unix" {
 		epoch, err := strconv.ParseInt(match[1], 10, 64)
 		if err != nil {
-			return time.Time{}, fmt.Errorf("invalid unix format: %s", name)
+			return time.Time{}, fmt.Errorf("invalid unix format: %w", err)
 		}
 		if len(match[1]) > 10 {
 			return time.UnixMilli(epoch).UTC(), nil
@@ -106,10 +104,11 @@ func Extract(name string, pattern string) (time.Time, error) {
 	), nil
 }
 
-// Strip matched regex from string. Invalid patterns and non-matched regex
+// Strip matched Pattern from string. Invalid patterns and non-matched regex
 // returns original string.
-func Strip(s string, pattern string) string {
-	if regex, ok := Patterns[pattern]; ok {
+func Strip(s string, cfg ...Config) string {
+	c := NewConfig(cfg...)
+	if regex, ok := Patterns[c.Voit.Pattern]; ok {
 		replaced := regex.ReplaceAllString(s, "")
 		return strings.TrimSpace(strings.Join(strings.Fields(replaced), " "))
 	}

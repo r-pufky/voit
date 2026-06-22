@@ -3,99 +3,7 @@ package voit
 import (
 	"reflect"
 	"testing"
-	"time"
 )
-
-func TestTagSyncAdd(t *testing.T) {
-	tests := []struct {
-		name     string
-		opts     *Opts
-		tags     []string
-		tag      string
-		wantTags []string
-	}{
-		{
-			name: "sanity: append a tag [tag added]",
-			opts: &Opts{
-				Tag: TagOpts{
-					SyncInFolder:   DefaultSyncInFolder,
-					SyncOutFolder:  DefaultSyncOutFolder,
-					SyncOutSpace:   DefaultSyncOutSpace,
-					SyncKeepFolder: false,
-					SyncKeepSpace:  false,
-				},
-			},
-			tags:     []string{"summer", "beach"},
-			tag:      "vacation",
-			wantTags: []string{"summer", "beach", "vacation"},
-		},
-		{
-			name: "sanity: keep-folder [folder retained]",
-			opts: &Opts{
-				Tag: TagOpts{
-					SyncInFolder:   DefaultSyncInFolder,
-					SyncOutFolder:  DefaultSyncOutFolder,
-					SyncOutSpace:   DefaultSyncOutSpace,
-					SyncKeepFolder: true,
-					SyncKeepSpace:  false,
-				},
-			},
-			tags:     []string{"summer", "beach"},
-			tag:      "places/vacation",
-			wantTags: []string{"summer", "beach", "places➔vacation"},
-		},
-		{
-			name: "sanity: keep-space [tag space retained]",
-			opts: &Opts{
-				Tag: TagOpts{
-					SyncInFolder:   DefaultSyncInFolder,
-					SyncOutFolder:  DefaultSyncOutFolder,
-					SyncOutSpace:   DefaultSyncOutSpace,
-					SyncKeepFolder: false,
-					SyncKeepSpace:  true,
-				},
-			},
-			tags: []string{"summer", "beach"},
-			tag:  "person name",
-			// Non-printable brail space counts as non-whitespace.
-			wantTags: []string{"summer", "beach", "person⠀name"},
-		},
-		{
-			name: "sanity: keep-all [folder, tag space retained]",
-			opts: &Opts{
-				Tag: TagOpts{
-					SyncInFolder:   DefaultSyncInFolder,
-					SyncOutFolder:  DefaultSyncOutFolder,
-					SyncOutSpace:   DefaultSyncOutSpace,
-					SyncKeepFolder: true,
-					SyncKeepSpace:  true,
-				},
-			},
-			tags: []string{"summer", "beach"},
-			tag:  "places/cabo/person name",
-			// Non-printable brail space counts as non-whitespace.
-			wantTags: []string{"summer", "beach", "places➔cabo➔person⠀name"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tag := Tag{
-				Items: tt.tags,
-			}
-
-			tag.SyncAdd(tt.tag, tt.opts)
-
-			if len(tag.Items) == 0 && len(tt.wantTags) == 0 {
-				return
-			}
-			if !reflect.DeepEqual(tag.Items, tt.wantTags) {
-				t.Errorf("\nTags:     %q\nwantTags: %q", tag.Items, tt.wantTags)
-			}
-
-		})
-	}
-}
 
 func TestTagAdd(t *testing.T) {
 	tests := []struct {
@@ -105,25 +13,25 @@ func TestTagAdd(t *testing.T) {
 		wantTags []string
 	}{
 		{
-			name:     "sanity: append a tag [tag added]",
+			name:     "append a tag [tag added]",
 			tags:     []string{"summer", "beach"},
 			tag:      "vacation",
 			wantTags: []string{"summer", "beach", "vacation"},
 		},
 		{
-			name:     "sanity: append a mixed-case tag [tag added lowercase]",
+			name:     "append a mixed-case tag [tag added lowercase]",
 			tags:     []string{"summer", "beach"},
 			tag:      "Vacation",
 			wantTags: []string{"summer", "beach", "vacation"},
 		},
 		{
-			name:     "sanity: mixed-case tag not added [tags unchanged]",
+			name:     "mixed-case tag not added [tags unchanged]",
 			tags:     []string{"summer", "beach"},
 			tag:      "Beach",
 			wantTags: []string{"summer", "beach"},
 		},
 		{
-			name:     "sanity: tag not added [tags unchanged]",
+			name:     "tag not added [tags unchanged]",
 			tags:     []string{"summer", "beach"},
 			tag:      "summer",
 			wantTags: []string{"summer", "beach"},
@@ -142,9 +50,64 @@ func TestTagAdd(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(tag.Items, tt.wantTags) {
-				t.Errorf("\nTags:     %q\nwantTags: %q", tag.Items, tt.wantTags)
+				t.Errorf("\nItems\nGot:  %q\nWant: %q\n", tag.Items, tt.wantTags)
+			}
+		})
+	}
+}
+
+func TestTagSyncAdd(t *testing.T) {
+	tests := []struct {
+		name     string
+		cfg      Config
+		tags     []string
+		tag      string
+		wantTags []string
+	}{
+		{
+			name:     "append a tag [tag added]",
+			cfg:      NewConfig(),
+			tags:     []string{"summer", "beach"},
+			tag:      "vacation",
+			wantTags: []string{"summer", "beach", "vacation"},
+		},
+		{
+			name:     "keep-folder [folder retained]",
+			cfg:      NewConfig(Config{Sync: SyncConfig{KeepFolder: true}}),
+			tags:     []string{"summer", "beach"},
+			tag:      "places/vacation",
+			wantTags: []string{"summer", "beach", "places➔vacation"},
+		},
+		{
+			name:     "keep-space [tag space retained]",
+			cfg:      NewConfig(Config{Sync: SyncConfig{KeepSpace: true}}),
+			tags:     []string{"summer", "beach"},
+			tag:      "person name",
+			wantTags: []string{"summer", "beach", "person⠀name"},
+		},
+		{
+			name:     "keep-all [folder, tag space retained]",
+			cfg:      NewConfig(Config{Sync: SyncConfig{KeepFolder: true, KeepSpace: true}}),
+			tags:     []string{"summer", "beach"},
+			tag:      "places/cabo/person name",
+			wantTags: []string{"summer", "beach", "places➔cabo➔person⠀name"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tagObj := Tag{
+				Items: tt.tags,
 			}
 
+			tagObj.SyncAdd(tt.tag, tt.cfg)
+
+			if len(tagObj.Items) == 0 && len(tt.wantTags) == 0 {
+				return
+			}
+			if !reflect.DeepEqual(tagObj.Items, tt.wantTags) {
+				t.Errorf("\nTags:     %q\nwantTags: %q\n", tagObj.Items, tt.wantTags)
+			}
 		})
 	}
 }
@@ -157,13 +120,13 @@ func TestTagDelete(t *testing.T) {
 		wantTags []string
 	}{
 		{
-			name:     "sanity: delete a tag [tag removed]",
+			name:     "delete a tag [tag removed]",
 			tags:     []string{"summer", "beach", "vacation"},
 			tag:      "vacation",
 			wantTags: []string{"summer", "beach"},
 		},
 		{
-			name:     "sanity: tag not found [tags unchanged]",
+			name:     "tag not found [tags unchanged]",
 			tags:     []string{"summer", "beach"},
 			tag:      "vacation",
 			wantTags: []string{"summer", "beach"},
@@ -182,9 +145,8 @@ func TestTagDelete(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(tag.Items, tt.wantTags) {
-				t.Errorf("\nTags:     %q\nwantTags: %q", tag.Items, tt.wantTags)
+				t.Errorf("\nItems\nGot:  %q\nWant: %q\n", tag.Items, tt.wantTags)
 			}
-
 		})
 	}
 }
@@ -197,43 +159,43 @@ func TestTagMatch(t *testing.T) {
 		wantBool bool
 	}{
 		{
-			name:     "sanity: all matched",
+			name:     "all matched",
 			tags:     []string{"summer", "vacation", "beach"},
 			match:    []string{"summer", "beach"},
 			wantBool: true,
 		},
 		{
-			name:     "sanity: mixed-case matched [case insensitive match]",
+			name:     "mixed-case matched [case insensitive match]",
 			tags:     []string{"summer", "vacation", "beach"},
 			match:    []string{"SUmmer", "BEACH"},
 			wantBool: true,
 		},
 		{
-			name:     "sanity: no match [rust not matched]",
+			name:     "no match [rust not matched]",
 			tags:     []string{"summer", "vacation", "beach"},
 			match:    []string{"summer", "rust"},
 			wantBool: false,
 		},
 		{
-			name:     "sanity: empty tags [no match]",
+			name:     "empty tags [no match]",
 			tags:     []string{},
 			match:    []string{"summer"},
 			wantBool: false,
 		},
 		{
-			name:     "sanity: empty match with tags [no match]",
+			name:     "empty match with tags [no match]",
 			tags:     []string{"golang", "programming"},
 			match:    []string{},
 			wantBool: false,
 		},
 		{
-			name:     "sanity: Nil match with tags [no match]",
+			name:     "nil match with tags [no match]",
 			tags:     []string{"golang"},
 			match:    nil,
 			wantBool: false,
 		},
 		{
-			name:     "sanity: both empty [no match]",
+			name:     "both empty [no match]",
 			tags:     []string{},
 			match:    []string{},
 			wantBool: false,
@@ -247,215 +209,150 @@ func TestTagMatch(t *testing.T) {
 			got := tag.Match(tt.match)
 
 			if got != tt.wantBool {
-				t.Errorf("Tag.Match() = %v, want %v for match %v against items %v",
-					got, tt.wantBool, tt.match, tt.tags)
+				t.Errorf("\nGot:   %v\nWant:  %v\nMatch: %v\nItems: %v\n", got, tt.wantBool, tt.match, tt.tags)
 			}
 		})
 	}
 }
 
-func TestStageTag(t *testing.T) {
-	vTime := time.Date(2026, time.February, 2, 12, 5, 20, 700000000, time.UTC)
-	bDesc := "beach vacation"
-
+func TestTagChomp(t *testing.T) {
 	tests := []struct {
 		name     string
-		opts     *Opts
-		f        VoitFiles
-		wantVoit []Voit
+		fName    string
+		args     Config
+		wantTags []string
+		wantName string
+		wantIdx  int
 	}{
 		{
-			name: "sanity: add tag [tag added]",
-			opts: &Opts{
-				Tag: TagOpts{
-					Add: []string{"additional"},
-				},
-			},
-			f: VoitFiles{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-			},
-			wantVoit: []Voit{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: vTime},
-						Tags:  Tag{Items: []string{"summer", "vacation", "beach"}},
-						Desc:  Desc{Text: bDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: vTime},
-						Tags:  Tag{Items: []string{"summer", "vacation", "beach", "additional"}},
-						Desc:  Desc{Text: bDesc},
-					},
-					Matched: true,
-				},
-			},
+			name:     "sanitized format",
+			fName:    "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
+			args:     Config{},
+			wantTags: []string{"summer", "vacation", "beach"},
+			wantName: "2026-02-02T12.05.20.700 - beach vacation",
+			wantIdx:  38,
 		},
 		{
-			name: "sanity: remove tag [tag removed]",
-			opts: &Opts{
-				Tag: TagOpts{
-					Remove: []string{"summer"},
-				},
-			},
-			f: VoitFiles{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-			},
-			wantVoit: []Voit{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: vTime},
-						Tags:  Tag{Items: []string{"summer", "vacation", "beach"}},
-						Desc:  Desc{Text: bDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: vTime},
-						Tags:  Tag{Items: []string{"vacation", "beach"}},
-						Desc:  Desc{Text: bDesc},
-					},
-					Matched: true,
-				},
-			},
+			name:     "alternative separator",
+			fName:    "2026-02-02T12.05.20.700 beach vacation - summer vacation beach",
+			args:     Config{Voit: VoitConfig{TagSep: " - "}},
+			wantTags: []string{"summer", "vacation", "beach"},
+			wantName: "2026-02-02T12.05.20.700 beach vacation",
+			wantIdx:  38,
 		},
 		{
-			name: "sanity: set tags [tag overwritten]",
-			opts: &Opts{
-				Tag: TagOpts{
-					Set: []string{"family", "europe"},
-				},
-			},
-			f: VoitFiles{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-			},
-			wantVoit: []Voit{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: vTime},
-						Tags:  Tag{Items: []string{"summer", "vacation", "beach"}},
-						Desc:  Desc{Text: bDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: vTime},
-						Tags:  Tag{Items: []string{"family", "europe"}},
-						Desc:  Desc{Text: bDesc},
-					},
-					Matched: true,
-				},
-			},
+			name:     "tags lowercased when added",
+			fName:    "2026-02-02T12.05.20.700 beach vacation -- SUMMER VACATION BEACH",
+			args:     Config{},
+			wantName: "2026-02-02T12.05.20.700 beach vacation",
+			wantTags: []string{"summer", "vacation", "beach"},
+			wantIdx:  38,
 		},
 		{
-			name: "sanity: select add tag [subset of tags have tags added]",
-			opts: &Opts{
-				Tag: TagOpts{
-					Select: []string{"summer", "vacation", "park"},
-					Add:    []string{"europe"},
-				},
-			},
-			f: VoitFiles{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation park.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation park",
-						Ext:    ".jpg",
-					},
-				},
-			},
-			wantVoit: []Voit{
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation beach.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation beach",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: vTime},
-						Tags:  Tag{Items: []string{"summer", "vacation", "beach"}},
-						Desc:  Desc{Text: bDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: vTime},
-						Tags:  Tag{Items: []string{"summer", "vacation", "beach"}},
-						Desc:  Desc{Text: bDesc},
-					},
-					Matched: false,
-				},
-				{
-					File: File{
-						Source: "/tmp/2026-02-02T12.05.20.700 beach vacation -- summer vacation park.jpg",
-						Name:   "2026-02-02T12.05.20.700 beach vacation -- summer vacation park",
-						Ext:    ".jpg",
-					},
-					Orig: Meta{
-						VTime: VTime{Time: vTime},
-						Tags:  Tag{Items: []string{"summer", "vacation", "park"}},
-						Desc:  Desc{Text: bDesc},
-					},
-					Mark: Meta{
-						VTime: VTime{Time: vTime},
-						Tags:  Tag{Items: []string{"summer", "vacation", "park", "europe"}},
-						Desc:  Desc{Text: bDesc},
-					},
-					Matched: true,
-				},
-			},
+			name:     "digikam tag spacers are considered a unbroken string",
+			fName:    "2026-02-02T12.05.20.700 beach vacation -- nested⠀tag⠀summer vacation beach",
+			args:     Config{},
+			wantName: "2026-02-02T12.05.20.700 beach vacation",
+			wantTags: []string{"nested⠀tag⠀summer", "vacation", "beach"},
+			wantIdx:  38,
+		},
+		{
+			name:     "empty [trailing space]",
+			fName:    "2026-02-02T12.05.20.700 beach vacation -- ",
+			args:     Config{},
+			wantName: "2026-02-02T12.05.20.700 beach vacation",
+			wantTags: []string{},
+			wantIdx:  38,
+		},
+		{
+			name:     "empty [invalid separator]",
+			fName:    "2026-02-02T12.05.20.700 beach vacation --",
+			args:     Config{},
+			wantName: "2026-02-02T12.05.20.700 beach vacation --",
+			wantTags: []string{},
+			wantIdx:  -1,
+		},
+		{
+			name:     "no tags",
+			fName:    "2026-02-02T12.05.20.700 beach vacation",
+			args:     Config{},
+			wantName: "2026-02-02T12.05.20.700 beach vacation",
+			wantTags: []string{},
+			wantIdx:  -1,
+		},
+		{
+			name:     "tags de-duplicated",
+			fName:    "2026-02-02T12.05.20.700 beach vacation -- summer summer beach",
+			args:     Config{},
+			wantName: "2026-02-02T12.05.20.700 beach vacation",
+			wantTags: []string{"summer", "beach"},
+			wantIdx:  38,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.f.StageTag(tt.opts)
+			var tag Tag
 
-			// DeepEqual will compare memory addresses if pointers, not values.
-			// Convert to value. This is required as pointers are needed to update
-			// the struct in place during stageTag.
-			got := make([]Voit, len(tt.f))
-			for i, ptr := range tt.f {
-				if ptr != nil {
-					got[i] = *ptr
-				}
+			tIdx := tag.Chomp(tt.fName, tt.args)
+
+			if tIdx != tt.wantIdx {
+				t.Errorf("\nIdx\nGot:  %d\nWant: %d\n", tIdx, tt.wantIdx)
 			}
 
-			if !reflect.DeepEqual(got, tt.wantVoit) {
-				t.Errorf("\nGot Voit:  %+v\nWant Voit: %+v", got, tt.wantVoit)
+			if len(tag.Items) == 0 && len(tt.wantTags) == 0 {
+				return
+			}
+			if !reflect.DeepEqual(tag.Items, tt.wantTags) {
+				t.Errorf("\nItems\nGot:  %q\nWant: %q\n", tag.Items, tt.wantTags)
+			}
+		})
+	}
+}
+
+func TestTagFormat(t *testing.T) {
+	tests := []struct {
+		name       string
+		tags       []string
+		args       Config
+		wantFormat string
+	}{
+		{
+			name:       "valid tags format [correct format]",
+			tags:       []string{"summer", "beach"},
+			args:       Config{},
+			wantFormat: " -- summer beach",
+		},
+		{
+			name:       "invalid tags [correct format]",
+			tags:       []string{"SUMMER", "Beach"},
+			args:       Config{},
+			wantFormat: " -- summer beach",
+		},
+		{
+			name:       "alternative output separator [correct format]",
+			tags:       []string{"SUMMER", "Beach"},
+			args:       Config{Voit: VoitConfig{TagSep: "|"}},
+			wantFormat: "|summer beach",
+		},
+		{
+			name:       "empty tags [no string returned]",
+			tags:       []string{},
+			args:       Config{},
+			wantFormat: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tag := Tag{
+				Items: tt.tags,
+			}
+
+			f := tag.Format(tt.args)
+
+			if f != tt.wantFormat {
+				t.Errorf("\nFormat()\nGot:  %q\nWant: %q\n", f, tt.wantFormat)
 			}
 		})
 	}

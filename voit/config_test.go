@@ -1,232 +1,182 @@
 package voit
 
 import (
-	"os"
 	"reflect"
-	"strings"
 	"testing"
 )
 
-func TestVoit(t *testing.T) {
+func TestNewConfig(t *testing.T) {
 	tests := []struct {
 		name string
-		opts *Opts
+		args Config
 		want Config
 	}{
 		{
-			name: "sanity: empty defaults [pattern: voit]",
-			opts: &Opts{},
+			name: "new config without existing options",
+			args: Config{}, // Simulate no Config passed.
 			want: Config{
-				Format:         DefaultVFormat,
-				Pattern:        "voit",
-				SSep:           DefaultSpanSep,
-				DSep:           DefaultDescSep,
-				TSep:           DefaultTagsSep,
-				SyncInFolder:   DefaultSyncInFolder,
-				SyncOutFolder:  DefaultSyncOutFolder,
-				SyncOutSpace:   DefaultSyncOutSpace,
-				SyncKeepFolder: false,
-				SyncKeepSpace:  false,
-				Lower:          false,
+				Voit: VoitConfig{
+					DescSep:   DescSep,
+					TagSep:    TagSep,
+					SpanSep:   SpanSep,
+					VFormat:   VFormat,
+					Pattern:   Pattern,
+					Set:       "",
+					Verbose:   false,
+					Overwrite: false,
+					Lower:     false,
+					Yes:       false,
+				},
+				Sync: SyncConfig{
+					MetaFolder: SyncMetaFolder,
+					Folder:     SyncFolder,
+					Space:      SyncSpace,
+					KeepFolder: false,
+					KeepSpace:  false,
+				},
+				FS:   RealFS{},
+				Unix: RealUnix{},
 			},
 		},
 		{
-			name: "sanity: non-default values",
-			opts: &Opts{
-				TagSep: "#",
-				Tag: TagOpts{
-					SyncInFolder:   "_",
-					SyncOutFolder:  ">",
-					SyncOutSpace:   "_",
-					SyncKeepFolder: true,
-					SyncKeepSpace:  true,
+			name: "new config with custom options",
+			args: Config{
+				Voit: VoitConfig{
+					DescSep:   "custom_desc",
+					TagSep:    "custom_tag",
+					SpanSep:   "custom_span",
+					VFormat:   "2006-01-02",
+					Pattern:   "custom_pattern",
+					Set:       "custom_set",
+					Verbose:   true,
+					Overwrite: true,
+					Lower:     true,
+					Yes:       true,
 				},
-				DescSep: "|",
-				SpanSep: "->",
-				Format:  "15:04",
-				Rename: RenameOpts{
-					Pattern: "photo-ms",
+				Sync: SyncConfig{
+					MetaFolder: "custom_meta",
+					Folder:     "custom_folder",
+					Space:      "custom_space",
+					KeepFolder: true,
+					KeepSpace:  true,
 				},
-				Lower: true,
+				FS:   MockFS{},   // Use a mock FS.
+				Unix: MockUnix{}, // Use a mock Unix.
 			},
 			want: Config{
-				Format:         "15:04",
-				Pattern:        "photo-ms",
-				SSep:           "->",
-				DSep:           "|",
-				TSep:           "#",
-				SyncInFolder:   "_",
-				SyncOutFolder:  ">",
-				SyncOutSpace:   "_",
-				SyncKeepFolder: true,
-				SyncKeepSpace:  true,
-				Lower:          true,
+				Voit: VoitConfig{
+					DescSep:   "custom_desc",
+					TagSep:    "custom_tag",
+					SpanSep:   "custom_span",
+					VFormat:   "2006-01-02",
+					Pattern:   "custom_pattern",
+					Set:       "custom_set",
+					Verbose:   true,
+					Overwrite: true,
+					Lower:     true,
+					Yes:       true,
+				},
+				Sync: SyncConfig{
+					MetaFolder: "custom_meta",
+					Folder:     "custom_folder",
+					Space:      "custom_space",
+					KeepFolder: true,
+					KeepSpace:  true,
+				},
+				FS:   MockFS{},
+				Unix: MockUnix{},
 			},
 		},
 		{
-			name: "sanity: partial set [default values used elsewhere]",
-			opts: &Opts{
-				Format: "2006",
+			name: "new minimal config with undefined FS, Unix [defaults, override_only, RealFS, RealUnix]",
+			args: Config{
+				Voit: VoitConfig{
+					DescSep: "override_only",
+				},
 			},
 			want: Config{
-				Format:         "2006",
-				Pattern:        "voit",
-				SSep:           DefaultSpanSep,
-				DSep:           DefaultDescSep,
-				TSep:           DefaultTagsSep,
-				SyncInFolder:   DefaultSyncInFolder,
-				SyncOutFolder:  DefaultSyncOutFolder,
-				SyncOutSpace:   DefaultSyncOutSpace,
-				SyncKeepFolder: false,
-				SyncKeepSpace:  false,
-				Lower:          false,
+				Voit: VoitConfig{
+					DescSep:   "override_only",
+					TagSep:    TagSep,
+					SpanSep:   SpanSep,
+					VFormat:   VFormat,
+					Pattern:   Pattern,
+					Set:       "",
+					Verbose:   false,
+					Overwrite: false,
+					Lower:     false,
+					Yes:       false,
+				},
+				Sync: SyncConfig{
+					MetaFolder: SyncMetaFolder,
+					Folder:     SyncFolder,
+					Space:      SyncSpace,
+					KeepFolder: false,
+					KeepSpace:  false,
+				},
+				FS:   RealFS{},
+				Unix: RealUnix{},
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.opts.Voit()
+			got := NewConfig(tt.args)
+
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("\nGot:  %v\nWant: %v\n", got, tt.want)
+				t.Errorf("\nGot:  %+v\nWant: %+v\n", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestValidate(t *testing.T) {
-	// Cache working directory for AbsSource testing.
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("failed to get working directory for test: %v", err)
-	}
+func TestConfigWithPattern(t *testing.T) {
+	t.Parallel()
 
 	tests := []struct {
 		name        string
-		input       Opts
-		wantErr     bool
-		errContains string
-		checkSource func(t *testing.T, result string)
+		c           Config
+		pattern     string
+		wantPattern string
 	}{
 		{
-			name: "santiy: relative abs source [abs source resolved]",
-			input: Opts{
-				SpanSep:   "--",
-				DescSep:   " ",
-				TagSep:    " -- ",
-				AbsSource: ".",
-				Tag: TagOpts{
-					SyncOutFolder: "➔",
-					SyncOutSpace:  "⠀",
-				},
-			},
-			wantErr: false,
-			checkSource: func(t *testing.T, result string) {
-				if result != wd {
-					t.Errorf("\nGot %s\nWant: %s\n", result, wd)
-				}
-			},
+			name:        "set pattern on empty config",
+			c:           Config{},
+			pattern:     "voit",
+			wantPattern: "voit",
 		},
 		{
-			name: "sanity: empty abs source [abs source resolved to cwd]",
-			input: Opts{
-				SpanSep:   "--",
-				DescSep:   " ",
-				TagSep:    " -- ",
-				AbsSource: "",
-				Tag: TagOpts{
-					SyncOutFolder: "➔",
-					SyncOutSpace:  "⠀",
+			name: "set pattern preserve other fields",
+			c: Config{
+				Voit: VoitConfig{
+					Pattern: "old-pattern",
+					VFormat: "2006-01-02",
 				},
 			},
-			wantErr: false,
-			checkSource: func(t *testing.T, result string) {
-				if result != wd {
-					t.Errorf("\nGot: %s\nWant: %s\n", result, wd)
-				}
-			},
+			pattern:     "new-pattern",
+			wantPattern: "new-pattern",
 		},
-		{
-			name: "sanity: SyncOutFolder collision [error raised]",
-			input: Opts{
-				SpanSep:   "-",
-				DescSep:   " ",
-				TagSep:    " -- ",
-				AbsSource: "",
-				Tag: TagOpts{
-					SyncOutFolder: "-",
-					SyncOutSpace:  "⠀",
-				},
-			},
-			wantErr:     true,
-			errContains: "tag-folder must be unique non-whitespace character",
-		},
-		{
-			name: "sanity: SyncOutFolder whitespace [error raised]",
-			input: Opts{
-				SpanSep:   "-",
-				DescSep:   " ",
-				TagSep:    " -- ",
-				AbsSource: "",
-				Tag: TagOpts{
-					SyncOutFolder: " ",
-					SyncOutSpace:  "⠀",
-				},
-			},
-			wantErr:     true,
-			errContains: "tag-folder must be unique non-whitespace character",
-		},
-		{
-			name: "sanity: SyncOutSpace collision [error raised]",
-			input: Opts{
-				SpanSep:   "-",
-				DescSep:   " ",
-				TagSep:    " -- ",
-				AbsSource: "",
-				Tag: TagOpts{
-					SyncOutFolder: "➔",
-					SyncOutSpace:  "-",
-				},
-			},
-			wantErr:     true,
-			errContains: "tag-space must be unique non-whitespace character",
-		},
-		{
-			name: "sanity: SyncOutSpace whitespace [error raised]",
-			input: Opts{
-				SpanSep:   "--",
-				DescSep:   " ",
-				TagSep:    " -- ",
-				AbsSource: "",
-				Tag: TagOpts{
-					SyncOutFolder: "➔",
-					SyncOutSpace:  " ",
-				},
-			},
-			wantErr:     true,
-			errContains: "tag-space must be unique non-whitespace character",
-		},
-		// Verbose flag simple, not tested.
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			opts := tt.input
+			t.Parallel()
 
-			err := opts.Validate()
+			orig := tt.c.Voit.VFormat
 
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("\nGot:  %v\nWant: %v\n", err, tt.wantErr)
+			got := tt.c.WithPattern(tt.pattern)
+
+			if got.Voit.Pattern != tt.wantPattern {
+				t.Errorf("\nPattern\nGot:  %q\nWant: %q\n", got.Voit.Pattern, tt.wantPattern)
 			}
 
-			if tt.wantErr && err != nil {
-				if !strings.Contains(err.Error(), tt.errContains) {
-					t.Errorf("Expected error to contain %q, but got %q", tt.errContains, err.Error())
-				}
+			if got.Voit.VFormat != orig {
+				t.Errorf("\nVFormat\nGot:  %q\nWant: %q\n", got.Voit.VFormat, orig)
 			}
 
-			if !tt.wantErr && tt.checkSource != nil {
-				tt.checkSource(t, opts.AbsSource)
+			if tt.c.Voit.Pattern == tt.pattern && tt.pattern != "" {
+				t.Error("\nOriginal Config struct mutated.\n")
 			}
 		})
 	}

@@ -23,12 +23,12 @@ func TestBindFlagsToPrefix(t *testing.T) {
 
 	gotTags := viper.GetStringSlice("tag.add")
 	if len(gotTags) != 1 || gotTags[0] != "choco" {
-		t.Errorf("Expected tag.add to be ['choco'], got %v", gotTags)
+		t.Errorf("\nGot:  %v\nWant: choco\n", gotTags)
 	}
 
 	gotSync := viper.GetBool("tag.sync-xmp")
 	if !gotSync {
-		t.Errorf("Expected tag.sync-xmp to be true, got %v", gotSync)
+		t.Errorf("\nGot:  %v\nWant: true\n", gotSync)
 	}
 }
 
@@ -46,6 +46,6 @@ func TestBindFlagsWithoutPrefix(t *testing.T) {
 	bindFlagsToPrefix(fs, "")
 
 	if !viper.GetBool("verbose") {
-		t.Errorf("Expected root level 'verbose' to be true")
+		t.Errorf("\nExpected root level 'verbose' to be true.\n")
 	}
 }

@@ -1,122 +1,119 @@
 package voit
 
-import (
-	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/k0kubun/pp/v3"
-)
-
-// Voit package owns configure; cmd is a consumer that sets options.
-type Opts struct {
-	TagSep    string     `mapstructure:"tag-sep"`
-	DescSep   string     `mapstructure:"desc-sep"`
-	SpanSep   string     `mapstructure:"span-sep"`
-	AbsSource string     `mapstructure:"abs-source"`
-	Format    string     `mapstructure:"format"`
-	Rename    RenameOpts `mapstructure:"rename"`
-	Tag       TagOpts    `mapstructure:"tag"`
-	Yes       bool       `mapstructure:"yes"`
-	Verbose   bool       `mapstructure:"verbose"`
-	Build     bool       `mapstructure:"build"`
-	Overwrite bool       `mapstructure:"overwrite"`
-	Lower     bool       `mapstructure:"lower"`
+// Voit config options including interfaces to use.
+type Config struct {
+	Voit VoitConfig // Voit package configuration.
+	Sync SyncConfig // Sync XMP metadata.
+	FS   FileSystem // FileSystem interface.
+	Unix Unix       // Unix interface.
 }
 
-type RenameOpts struct {
-	Pattern       string `mapstructure:"pattern"`
-	Set           string `mapstructure:"set"`
-	Strip         bool   `mapstructure:"strip"`
-	NoDesc        bool   `mapstructure:"no-desc"`
-	NoTags        bool   `mapstructure:"no-tags"`
-	PreferPattern bool   `mapstructure:"prefer-pattern"`
+// Voit config.
+type VoitConfig struct {
+	DescSep   string // Desc separator.
+	TagSep    string // Tag separator.
+	SpanSep   string // VTime span separator.
+	VFormat   string // VTime time format.
+	Pattern   string // Regex matching pattern.
+	Set       string // Set static VTime time format (set option).
+	Verbose   bool   // Show extra details during execution.
+	Overwrite bool   // Force overwrite existing files.
+	Lower     bool   // Lowercase description.
+	Yes       bool   // Automatically confirm operations.
 }
 
-type TagOpts struct {
-	Add            []string `mapstructure:"add"`
-	Remove         []string `mapstructure:"remove"`
-	Set            []string `mapstructure:"set"`
-	Select         []string `mapstructure:"select"`
-	SyncXMP        bool     `mapstructure:"sync-xmp"`
-	SyncInFolder   string   `mapstructure:"sync-in-folder"`
-	SyncOutFolder  string   `mapstructure:"sync-out-folder"`
-	SyncOutSpace   string   `mapstructure:"sync-out-space"`
-	SyncKeepFolder bool     `mapstructure:"sync-keep-folder"`
-	SyncKeepSpace  bool     `mapstructure:"sync-keep-space"`
-	Delete         bool     `mapstructure:"delete"`
+// Sync XMP metadata config.
+type SyncConfig struct {
+	MetaFolder string // Sync XMP Tag input folder separator (expected folder separator for tags).
+	Folder     string // Sync XMP Tag folder separator.
+	Space      string // Sync XMP Tag space separator.
+	KeepFolder bool   // Tag keep nested folders when ingesting tags.
+	KeepSpace  bool   // Tag keep tag spaces when ingesting tags.
 }
 
-var Cfg Opts
+// NewConfig returns a Config struct with package default options set.
+// Optional Config used to set non-default values and mocks.
+func NewConfig(cfg ...Config) Config {
+	// No performance impact for using custom or default config in func.
+	// func Example(cfg ...Config) {
+	//   c := NewConfig(cfg...)
 
-// Return voit config using parsed options with model default values if unset.
-func (o *Opts) Voit() Config {
-	c := NewConfig()
-
-	if o.Format != "" {
-		c.Format = o.Format
-	}
-	if o.SpanSep != "" {
-		c.SSep = o.SpanSep
-	}
-	if o.DescSep != "" {
-		c.DSep = o.DescSep
-	}
-	if o.TagSep != "" {
-		c.TSep = o.TagSep
-	}
-	if o.Tag.SyncInFolder != "" {
-		c.SyncInFolder = o.Tag.SyncInFolder
-	}
-	if o.Tag.SyncOutFolder != "" {
-		c.SyncOutFolder = o.Tag.SyncOutFolder
-	}
-	if o.Tag.SyncOutSpace != "" {
-		c.SyncOutSpace = o.Tag.SyncOutSpace
-	}
-	c.SyncKeepFolder = o.Tag.SyncKeepFolder
-	c.SyncKeepSpace = o.Tag.SyncKeepSpace
-	c.Lower = o.Lower
-
-	if o.Rename.Set != "" {
-		c.Set = o.Rename.Set
-	}
-	if o.Rename.Pattern != "" {
-		c.Pattern = o.Rename.Pattern
-	} else {
-		c.Pattern = "voit"
-	}
-	return c
-}
-
-// Validate received options.
-func (o *Opts) Validate() error {
-	switch o.Tag.SyncOutFolder {
-	case o.SpanSep, o.DescSep, o.TagSep, o.Tag.SyncOutSpace, " ", "\t", "\n", "\v", "\f", "\r":
-		return fmt.Errorf("tag-folder must be unique non-whitespace character (%v).", o.Tag.SyncOutFolder)
-	}
-	switch o.Tag.SyncOutSpace {
-	case o.SpanSep, o.DescSep, o.TagSep, o.Tag.SyncOutFolder, " ", "\t", "\n", "\v", "\f", "\r":
-		return fmt.Errorf("tag-space must be unique non-whitespace character (%v).", o.Tag.SyncOutSpace)
+	c := Config{
+		Voit: VoitConfig{
+			DescSep:   DescSep,
+			TagSep:    TagSep,
+			SpanSep:   SpanSep,
+			VFormat:   VFormat,
+			Pattern:   Pattern,
+			Set:       "",
+			Verbose:   false,
+			Overwrite: false,
+			Lower:     false,
+			Yes:       false,
+		},
+		Sync: SyncConfig{
+			MetaFolder: SyncMetaFolder,
+			Folder:     SyncFolder,
+			Space:      SyncSpace,
+			KeepFolder: false,
+			KeepSpace:  false,
+		},
+		FS:   RealFS{},
+		Unix: RealUnix{},
 	}
 
-	if o.AbsSource == "" {
-		var err error
-		o.AbsSource, err = os.Getwd()
-		if err != nil {
-			return fmt.Errorf("unable to get current working directory (%v).", err)
+	// Only update if provided config has non-default values.
+	if len(cfg) > 0 {
+		user := cfg[0]
+
+		if user.Voit.DescSep != "" {
+			c.Voit.DescSep = user.Voit.DescSep
+		}
+		if user.Voit.TagSep != "" {
+			c.Voit.TagSep = user.Voit.TagSep
+		}
+		if user.Voit.SpanSep != "" {
+			c.Voit.SpanSep = user.Voit.SpanSep
+		}
+		if user.Voit.VFormat != "" {
+			c.Voit.VFormat = user.Voit.VFormat
+		}
+		if user.Voit.Pattern != "" {
+			c.Voit.Pattern = user.Voit.Pattern
+		}
+		if user.Voit.Set != "" {
+			c.Voit.Set = user.Voit.Set
+		}
+		c.Voit.Verbose = cfg[0].Voit.Verbose
+		c.Voit.Overwrite = cfg[0].Voit.Overwrite
+		c.Voit.Lower = cfg[0].Voit.Lower
+		c.Voit.Yes = cfg[0].Voit.Yes
+
+		if user.Sync.MetaFolder != "" {
+			c.Sync.MetaFolder = user.Sync.MetaFolder
+		}
+		if user.Sync.Folder != "" {
+			c.Sync.Folder = user.Sync.Folder
+		}
+		if user.Sync.Space != "" {
+			c.Sync.Space = user.Sync.Space
+		}
+		c.Sync.KeepFolder = cfg[0].Sync.KeepFolder
+		c.Sync.KeepSpace = cfg[0].Sync.KeepSpace
+
+		if cfg[0].FS != nil {
+			c.FS = cfg[0].FS
+		}
+		if cfg[0].Unix != nil {
+			c.Unix = cfg[0].Unix
 		}
 	}
 
-	absPath, err := filepath.Abs(o.AbsSource)
-	if err != nil {
-		return fmt.Errorf("source does not exist (%v).", o.AbsSource)
-	}
-	o.AbsSource = absPath
+	return c
+}
 
-	if o.Verbose {
-		pp.Printf("Parsed Config: %v\nVoit Config: %v\n", o, o.Voit())
-	}
-
-	return nil
+// WithPattern constructs Config struct with Pattern set.
+func (c Config) WithPattern(pattern string) Config {
+	c.Voit.Pattern = pattern // Use by value to return instance only change.
+	return c
 }
