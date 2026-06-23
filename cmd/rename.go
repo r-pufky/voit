@@ -51,7 +51,7 @@ var (
 
 			assets := voit.NewAssets()
 
-			if err := assets.LoadDir(voit.Cfg.AbsSource); err != nil {
+			if err := assets.LoadDir(voit.Cfg.AbsSource, c); err != nil {
 				log.Fatalf("Unable to complete source file scan: %v", err)
 			} else {
 				voit.StageRename(os.Stdout, assets, &voit.Cfg, c)
@@ -69,7 +69,7 @@ func init() {
 	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.NoDesc, "no-desc", "", false, "Remove description")
 	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.NoTags, "no-tags", "", false, "Remove tags")
 	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both are non-zero (default: use VTIME if both exist)")
-	renameCmd.Flags().StringVarP(&voit.Cfg.Rename.Set, "set", "e", "", "Explicitly set VTIME (see --format)")
+	renameCmd.Flags().StringVarP(&voit.Cfg.Rename.Set, "set", "e", "", "Explicitly set VTIME (see --v-format)")
 
 	renameCmd.Flags().Bool("photo-ms", false, "YYYYMMDD░HHMMSSSSS      │ Photos, Screenshots (ms)")
 	renameCmd.Flags().Bool("photo", false, "YYYYMMDD░HHMMSS         │ Photos, Screenshots")

@@ -171,7 +171,7 @@ func (ai *AssetImpl) ResolveCollisions(w io.Writer, cfg ...Config) {
 			assetCollision := ai.HasAssetDestCollision(key, c)
 
 			if c.Voit.Verbose {
-				pp.Fprintf(w, "\nKey: %s\nFS collision: %t\nAsset collision: %t\nAsset: %s\n", key, FSCollision, assetCollision, voit)
+				pp.Fprintf(w, "\nKey: %s\nFS collision: %v\nAsset collision: %v\nAsset: %v\n", key, FSCollision, assetCollision, voit)
 			}
 
 			if !FSCollision && !assetCollision {

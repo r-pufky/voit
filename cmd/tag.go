@@ -33,7 +33,7 @@ var (
 
 			assets := voit.NewAssets()
 
-			if err := assets.LoadDir(voit.Cfg.AbsSource); err != nil {
+			if err := assets.LoadDir(voit.Cfg.AbsSource, c); err != nil {
 				log.Fatalf("Unable to complete source file scan: %v", err)
 			} else {
 				if voit.Cfg.Tag.SyncXMP {
