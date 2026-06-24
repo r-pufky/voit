@@ -18,6 +18,7 @@ type VoitConfig struct {
 	Set       string // Set static VTime time format (set option).
 	Verbose   bool   // Show extra details during execution.
 	Overwrite bool   // Force overwrite existing files.
+	Minimize  bool   // Minimize VTIME to use only defined fields.
 	Lower     bool   // Lowercase description.
 	Yes       bool   // Automatically confirm operations.
 }
@@ -48,6 +49,7 @@ func NewConfig(cfg ...Config) Config {
 			Set:       "",
 			Verbose:   false,
 			Overwrite: false,
+			Minimize:  false,
 			Lower:     false,
 			Yes:       false,
 		},
@@ -86,6 +88,7 @@ func NewConfig(cfg ...Config) Config {
 		}
 		c.Voit.Verbose = cfg[0].Voit.Verbose
 		c.Voit.Overwrite = cfg[0].Voit.Overwrite
+		c.Voit.Minimize = cfg[0].Voit.Minimize
 		c.Voit.Lower = cfg[0].Voit.Lower
 		c.Voit.Yes = cfg[0].Voit.Yes
 

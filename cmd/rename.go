@@ -23,7 +23,7 @@ var (
 		Use:     "rename",
 		Short:   "Rename files according to file name & attribute dates",
 		Long:    renameLong,
-		Example: "  voit rename -s ./photos --photo-ms\n  voit rename -s image.jpg -l",
+		Example: "  voit rename -s ./photos --photo-ms\n  voit rename -s image.jpg -l  (defaults to --voit)",
 
 		PreRun: func(cmd *cobra.Command, args []string) {
 			// Resolve all pattern flags to pattern variable using option name.
@@ -33,8 +33,11 @@ var (
 					break
 				}
 			}
-			if voit.Cfg.Rename.Set != "" {
+			if voit.Cfg.Rename.Set != "" { // --set used.
 				voit.Cfg.Rename.Pattern = "set"
+			}
+			if voit.Cfg.Rename.Pattern == "" { // default pattern.
+				voit.Cfg.Rename.Pattern = "voit"
 			}
 		},
 
@@ -68,8 +71,8 @@ func init() {
 	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.Strip, "strip", "", false, "Strip matched pattern from description")
 	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.NoDesc, "no-desc", "", false, "Remove description")
 	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.NoTags, "no-tags", "", false, "Remove tags")
-	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN date over VTIME if both are non-zero (default: use VTIME if both exist)")
-	renameCmd.Flags().StringVarP(&voit.Cfg.Rename.Set, "set", "e", "", "Explicitly set VTIME (see --v-format)")
+	renameCmd.Flags().BoolVarP(&voit.Cfg.Rename.PreferPattern, "prefer-pattern", "p", false, "Use PATTERN over VTIME if both are non-zero (default: use VTIME if both exist)")
+	renameCmd.Flags().StringVarP(&voit.Cfg.Rename.Set, "set", "e", "", "Explicitly set VTIME value (see --v-format)")
 
 	renameCmd.Flags().Bool("photo-ms", false, "YYYYMMDD░HHMMSSSSS      │ Photos, Screenshots (ms)")
 	renameCmd.Flags().Bool("photo", false, "YYYYMMDD░HHMMSS         │ Photos, Screenshots")
@@ -82,7 +85,7 @@ func init() {
 	renameCmd.Flags().Bool("8601-naked", false, "YYYYMMDDHHMMSS          │ Naked 8601")
 	renameCmd.Flags().Bool("webkit-chrome", false, "SSSSSSSSSSSSSSSSS       │ Chrome Webkit Epoch")
 	renameCmd.Flags().Bool("unix", false, "SSSSSSSSSSSSS           │ Unix Epoch")
-	renameCmd.Flags().Bool("voit", false, "YYYY-MM-DDTHH.MM.SS.SSS │ Voit Scheme")
+	renameCmd.Flags().Bool("voit", false, "YYYY-MM-DDTHH.MM.SS.SSS │ Voit Scheme (default)")
 	renameCmd.Flags().Bool("voit-span", false, "{VTIME}--{VTIME}        │ Voit Scheme date span")
 	renameCmd.Flags().Bool("created", false, "[ctime]                 │ Use file creation date")
 	renameCmd.Flags().Bool("modified", false, "[modtime]               │ Use file modification date")

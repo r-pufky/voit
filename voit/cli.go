@@ -29,6 +29,7 @@ type Opts struct {
 	Verbose   bool       `mapstructure:"verbose"`
 	Build     bool       `mapstructure:"build"`
 	Overwrite bool       `mapstructure:"overwrite"`
+	Minimize  bool       `mapstructure:"minimize"`
 	Lower     bool       `mapstructure:"lower"`
 }
 
@@ -116,6 +117,7 @@ func (c Config) UpdateFromOpts(opts *Opts, cfg ...Config) Config {
 	}
 	c.Voit.Verbose = opts.Verbose
 	c.Voit.Overwrite = opts.Overwrite
+	c.Voit.Minimize = opts.Minimize
 	c.Voit.Lower = opts.Lower
 	c.Voit.Yes = opts.Yes
 

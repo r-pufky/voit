@@ -20,7 +20,7 @@ Target files are automatically differentiated if there are name collisions.
 var (
 	tagCmd = &cobra.Command{
 		Use:     "tag",
-		Short:   "tag files according to filters",
+		Short:   "Tag files according to filters",
 		Long:    tagLong,
 		Example: "  voit tag -e party\n  voit tag -s ./photos -l cake -a candles -a bday\n  voit tag --sync-xmp",
 

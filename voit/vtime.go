@@ -53,12 +53,45 @@ func (v *VTime) Chomp(name string, cfg ...Config) {
 	}
 }
 
-// Format uses SpanSep and VFormat to return a valid VTime string.
+// Format uses SpanSep and VFormat to return a valid VTime string. Format is
+// minimized when using default VFormat and Minimize.
 func (v *VTime) Format(cfg ...Config) string {
 	c := NewConfig(cfg...)
+
+	if c.Voit.Minimize && c.Voit.VFormat == VFormat {
+		if v.Span.IsZero() {
+			return minimize(v.Time)
+		}
+		return minimize(v.Time) + c.Voit.SpanSep + minimize(v.Span)
+	}
+
 	if v.Span.IsZero() {
 		return v.Time.Format(c.Voit.VFormat)
 	}
 
 	return v.Time.Format(c.Voit.VFormat) + c.Voit.SpanSep + v.Span.Format(c.Voit.VFormat)
+}
+
+// minimize removes zero-valued time components using the default VFormat, up
+// to the first defined component.
+func minimize(t time.Time) string {
+	if t.Nanosecond() > 0 {
+		if t.Nanosecond()/1000000 > 0 {
+			return t.Format("2006-01-02T15.04.05.000")
+		}
+	}
+
+	if t.Second() > 0 {
+		return t.Format("2006-01-02T15.04.05")
+	}
+
+	if t.Minute() > 0 {
+		return t.Format("2006-01-02T15.04")
+	}
+
+	if t.Hour() > 0 {
+		return t.Format("2006-01-02T15")
+	}
+
+	return t.Format("2006-01-02")
 }

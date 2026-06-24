@@ -44,11 +44,13 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.DescSep, "desc-sep", "", voit.DescSep, "Description separator")
 	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.TagSep, "tag-sep", "", voit.TagSep, "Tag separator")
 	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.SpanSep, "span-sep", "", voit.SpanSep, "VTIME date span separator")
-	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.VFormat, "v-format", "", voit.VFormat, "VTIME format")
+	rootCmd.PersistentFlags().StringVarP(&voit.Cfg.VFormat, "v-format", "", voit.VFormat, "Custom VTIME format to use")
 	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Verbose, "verbose", "v", false, "Show verbose information")
 	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Yes, "yes", "y", false, "Automatically confirm operations")
 	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Lower, "lower", "l", false, "Lowercase description and extension")
+	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Minimize, "minimize", "m", false, "Minimize default VTIME to write only non-zero fields")
 	rootCmd.PersistentFlags().BoolVarP(&voit.Cfg.Overwrite, "overwrite", "", false, "Overwrite existing target files (DANGEROUS)")
+	rootCmd.MarkFlagsMutuallyExclusive("v-format", "minimize")
 
 	rootCmd.Flags().BoolVarP(&voit.Cfg.Build, "build", "b", false, "Show build version.")
 
