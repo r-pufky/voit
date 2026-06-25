@@ -227,6 +227,7 @@ func (ai *AssetImpl) PromptRename(w io.Writer, r io.Reader, cfg ...Config) error
 			return nil // Exit success.
 		}
 
+		defer timeAction(w, time.Now())
 		for _, v := range ai.m {
 			if err := v.Rename(w, c); err != nil {
 				return err
@@ -251,5 +252,5 @@ func Confirm(w io.Writer, r io.Reader) bool {
 
 // Time file actions.
 func timeAction(w io.Writer, start time.Time) {
-	fmt.Fprintf(w, "Renamed in %s.\n", time.Since(start))
+	fmt.Fprintf(w, "Modified in %s.\n", time.Since(start))
 }
